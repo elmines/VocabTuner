@@ -1,7 +1,7 @@
 #import ctf_writer
 from indexer import Indexer
 
-numSentences = 100
+numSentences = 1500000
 vocabSize = 25
 sourceLangPath = "../corpora/europarl-v7.es-en.es"
 destLangPath = "../corpora/europarl-v7.es-en.en"
@@ -20,6 +20,8 @@ ind = Indexer()
 sourceLine = source.readline()
 destLine = dest.readline()
 
+
+logFrequency = 50000
 count = 0
 while (count < numSentences) and sourceLine and destLine:
     #ctf.writeSequence(sourceLine, destLine)
@@ -29,6 +31,8 @@ while (count < numSentences) and sourceLine and destLine:
     sourceLine = source.readline()
     destLine = dest.readline()
     count += 1
+
+    if count % logFrequency == 0: print("{} sequences read.".format(count))
 
 source.close()
 dest.close()
