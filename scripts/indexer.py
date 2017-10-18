@@ -16,8 +16,8 @@ class Indexer:
     destWordCounts = None
 
     def __init__(self):
-        sourceWordCounts = defaultdict(int)
-        destWordCounts = defaultdict(int)
+        self.sourceWordCounts = defaultdict(int)
+        self.destWordCounts = defaultdict(int)
 
 ########################Private Functions###############################
 
@@ -33,18 +33,19 @@ class Indexer:
             if char.isalpha(): chars.append(char.lower())
             elif char.isdigit(): chars.append(char)
     
-        return EMPTY().join(chars)
+        return Indexer.__EMPTY().join(chars)
 
     def __indexDict(self, lang, size):
-       wordCounts = sourceWordCounts if lang == Lang.SOURCE else destWordCounts
+       wordCounts = self.sourceWordCounts if lang == Lang.SOURCE else self.destWordCounts
        if not(size): size = len(wordCounts) 
 
        #Words in descending order of frequency
-       words = sorted(wordCounts, key = wordCounts.get, reverse = True).keys()
+       words = sorted(wordCounts, key = wordCounts.get, reverse = True)
 
        indices = {}
        i = 0
        for i in range(size):
+           #print("Adding \"" + words[i] + "\" to " + str(lang) + " vocabulary.")
            indices[words[i]] = i
 
        return indices
@@ -52,8 +53,8 @@ class Indexer:
 
     def __processToken(self, token, lang):
         cleaned = Indexer.__cleanToken(token)
-        if lang == Lang.SOURCE: sourceWordCounts[cleaned] += 1
-        else:                   destWordCounts[cleaned] += 1
+        if lang == Lang.SOURCE: self.sourceWordCounts[cleaned] += 1
+        else:                   self.destWordCounts[cleaned] += 1
         
 
     def __processSequence(self, line, lang):
