@@ -43,7 +43,7 @@ class Bicorpus:
         
         self.sourceWordCounts = defaultdict(int)
         self.destWordCounts = defaultdict(int)
-        self.sourceIndices, self.destIndices = self.__indexDicts(vocabSize, numSequences)
+        self.sourceIndices, self.destIndices = self.__genIndexDicts(vocabSize, numSequences)
 
         self.altLines = {}
         self.altLines[0] = (self.sourceLines, self.destLines)
@@ -52,13 +52,22 @@ class Bicorpus:
         self.altIndices[0] = (self.sourceIndices, self.destIndices)
 
 
+##########################Static Functions##################################
 
+  ########################Class constants##########################
+    @staticmethod
+    def start_token():
+        return "<s>"
 
-##########################Private functions#################################
-    #Class constant
+    @staticmethod
+    def end_token():
+        return "</s>"
+
     @staticmethod
     def __EMPTY():
         return ""
+
+   #######################Class methods##############################
 
     @staticmethod
     def __cleanToken(token):
@@ -69,10 +78,12 @@ class Bicorpus:
     
         return Bicorpus.__EMPTY().join(chars)
 
+##########################Private functions#################################
+
     @staticmethod
     def __cleanSequence(sequence, index = -1):
         tokens = [Bicorpus.__cleanToken(token) for token in sequence.split(" ")]
-        if index == 0: print(tokens)
+        #if index == 0: print(tokens)
         return " ".join(tokens)
 
     def __processToken(self, token, lang):
@@ -80,20 +91,23 @@ class Bicorpus:
         else:                   self.destWordCounts[token] += 1
         
     def __processSequence(self, line, lang):
-        for token in Bicorpus.__cleanSequence(line).split():
+        for token in line.split():
             self.__processToken(token, lang)
 
+	#Add annotative tokens after counting word tokens
+        #line = " ".join([Bicorpus.start_token(), line, Bicorpus.end_token()])
+
     def __processBisequence(self, index):
-        if index == 0:
-            print(self.sourceLines[index])
-            print(self.destLines[index])
+        #if index == 0:
+            #print(self.sourceLines[index])
+            #print(self.destLines[index])
 
         self.sourceLines[index] = Bicorpus.__cleanSequence(self.sourceLines[index], index)
         self.destLines[index] = Bicorpus.__cleanSequence(self.destLines[index])
 
-        if index == 0:
-            print(self.sourceLines[index])
-            print(self.destLines[index])
+        #if index == 0:
+            #print(self.sourceLines[index])
+            #print(self.destLines[index])
 
         self.__processSequence(self.sourceLines[index], lang = Lang.SOURCE)
         self.__processSequence(self.destLines[index], lang = Lang.DEST)
@@ -106,14 +120,17 @@ class Bicorpus:
        words = sorted(wordCounts, key = wordCounts.get, reverse = True)
 
        indices = {}
-       i = 0
        for i in range(size):
            #print("Adding \"" + words[i] + "\" to " + str(lang) + " vocabulary.")
            indices[words[i]] = i
 
+       #Add annotative tokens
+       indices[Bicorpus.start_token()] = size
+       indices[Bicorpus.end_token()] = size + 1
+
        return indices
 
-    def __indexDicts(self, vocabSize, numSequences):
+    def __genIndexDicts(self, vocabSize, numSequences):
         logFrequency = numSequences // 20
         for i in range(numSequences):
             self.__processBisequence(i)
@@ -126,5 +143,9 @@ class Bicorpus:
 
 ############################Public functions##############################
 
+
     def training_lines(self):
         return self.sourceLines, self.destLines
+
+    def getIndexDicts(self):
+        return self.sourceIndices, self.destIndices
