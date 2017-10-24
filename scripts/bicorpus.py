@@ -14,7 +14,8 @@ class Bicorpus:
     
     #Dictionary: int -> (list of source langauge lines, list of dest language lines)
     #The integer key indicates the number of byte-pair merges
-    altIndices = None
+    altW2I = None
+    altI2W = None
 
     #The original (cleaned) lines of the text with no BPE merges
     #Also available via altLines[0]
@@ -23,8 +24,10 @@ class Bicorpus:
 
     #The original one-hot vocabulary indices with no BPE merges
     #Also available via altIndices[0]
-    sourceIndices = None
-    destIndices = None
+    sourceW2I = None
+    sourceI2W = None
+    destW2I = None
+    destI2W = None 
 
     #Only to be used in our earlier model, while still representing input as full words
     sourceWordCounts = None
@@ -35,7 +38,7 @@ class Bicorpus:
         if len(sourceLines) != len(destLines):
             raise ValueError("Unequal number of source and destination language lines.")
         if numSequences and (numSequences > len(sourceLines)):
-            raise ValueError("More sequences requested than in file.")
+            raise ValueError("More sequences requested than available sourceLines and destLines.")
 
         if not(numSequences): numSequences = len(sourceLines)
         self.sourceLines = sourceLines
@@ -43,13 +46,16 @@ class Bicorpus:
         
         self.sourceWordCounts = defaultdict(int)
         self.destWordCounts = defaultdict(int)
-        self.sourceIndices, self.destIndices = self.__genIndexDicts(vocabSize, numSequences)
+        (self.sourceW2I, self.destW2I), (self.sourceI2W, self.destI2W) = self.__genIndexDicts(vocabSize, numSequences)
 
         self.altLines = {}
         self.altLines[0] = (self.sourceLines, self.destLines)
 
-        self.altIndices = {}
-        self.altIndices[0] = (self.sourceIndices, self.destIndices)
+        self.altW2I = {}
+        self.altW2I[0] = (self.sourceW2I, self.destW2I)
+
+        self.altI2W = {}
+        self.altI2W[0] = (self.sourceI2W, self.destW2I)
 
 
 ##########################Static Functions##################################
@@ -112,23 +118,29 @@ class Bicorpus:
         self.__processSequence(self.sourceLines[index], lang = Lang.SOURCE)
         self.__processSequence(self.destLines[index], lang = Lang.DEST)
 
-    def __indexDict(self, lang, size):
+
+    #Returns a tuple of (word to index dictionary, index to word dictionary)
+    def __indexDicts(self, lang, size):
        wordCounts = self.sourceWordCounts if lang == Lang.SOURCE else self.destWordCounts
        if not(size) or size > len(wordCounts): size = len(wordCounts) 
 
        #Words in descending order of frequency
        words = sorted(wordCounts, key = wordCounts.get, reverse = True)
 
-       indices = {}
+       w2i = {}
+       i2w = {}
        for i in range(size):
-           #print("Adding \"" + words[i] + "\" to " + str(lang) + " vocabulary.")
-           indices[words[i]] = i
+           w2i[words[i]] = i
+           i2w[i] = words[i]
 
        #Add annotative tokens
-       indices[Bicorpus.start_token()] = size
-       indices[Bicorpus.end_token()] = size + 1
+       w2i[Bicorpus.start_token()] = size
+       w2i[Bicorpus.end_token()] = size + 1
+        
+       i2w[size] = Bicorpus.start_token()
+       i2w[size + 1] = Bicorpus.end_token()
 
-       return indices
+       return w2i, i2w
 
     def __genIndexDicts(self, vocabSize, numSequences):
         logFrequency = numSequences // 20
@@ -136,10 +148,10 @@ class Bicorpus:
             self.__processBisequence(i)
             if (i + 1) % logFrequency == 0: print("{} sequences read.".format(i + 1))
 
-        sourceIndices = self.__indexDict(Lang.SOURCE, vocabSize)
-        destIndices = self.__indexDict(Lang.DEST, vocabSize)
+        sourceW2I, sourceI2W = self.__indexDicts(Lang.SOURCE, vocabSize)
+        destW2I, destI2W = self.__indexDicts(Lang.DEST, vocabSize)
 
-        return sourceIndices, destIndices
+        return (sourceW2I, destW2I), (sourceI2W, destI2W)
 
 ############################Public functions##############################
 
@@ -147,5 +159,8 @@ class Bicorpus:
     def training_lines(self):
         return self.sourceLines, self.destLines
 
-    def getIndexDicts(self):
-        return self.sourceIndices, self.destIndices
+    def getW2IDicts(self):
+        return self.sourceW2I, self.destW2I
+
+    def getI2WDicts(self):
+        return self.sourceI2W, self.destI2W
