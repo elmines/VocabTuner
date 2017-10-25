@@ -34,7 +34,7 @@ class Bicorpus:
     destWordCounts = None
 
 
-    def __init__(self, sourceLines, destLines, vocabSize = 30000, numSequences = None):
+    def __init__(self, sourceLines, destLines, vocabSize = None, numSequences = None):
         if len(sourceLines) != len(destLines):
             raise ValueError("Unequal number of source and destination language lines.")
         if numSequences and (numSequences > len(sourceLines)):
@@ -142,11 +142,16 @@ class Bicorpus:
 
        return w2i, i2w
 
-    def __genIndexDicts(self, vocabSize, numSequences):
+    def __genIndexDicts(self, vocabSize, numSequences ):
         logFrequency = numSequences // 20
         for i in range(numSequences):
             self.__processBisequence(i)
             if (i + 1) % logFrequency == 0: print("{} sequences read.".format(i + 1))
+
+        #Ensure both source and destination vocabularies have equal vocabulary sizes to get CNTK to work
+        minVocabSize = min(len(sourceWordCounts), len(destWordCounts))
+        if not(vocabSize) or (minVocabSize < vocabSize):
+            vocabSize = minVocabSize
 
         sourceW2I, sourceI2W = self.__indexDicts(Lang.SOURCE, vocabSize)
         destW2I, destI2W = self.__indexDicts(Lang.DEST, vocabSize)
