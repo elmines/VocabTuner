@@ -38,7 +38,7 @@ class Bicorpus:
         if len(sourceLines) != len(destLines):
             raise ValueError("Unequal number of source and destination language lines.")
         if numSequences and (numSequences > len(sourceLines)):
-            raise ValueError("More sequences requested than available sourceLines and destLines.")
+            raise ValueError("More sequences requested than available in sourceLines and destLines.")
 
         if not(numSequences): numSequences = len(sourceLines)
         self.sourceLines = sourceLines
@@ -96,27 +96,29 @@ class Bicorpus:
         if lang == Lang.SOURCE: self.sourceWordCounts[token] += 1
         else:                   self.destWordCounts[token] += 1
         
-    def __processSequence(self, line, lang):
-        for token in line.split():
+    def __processSequence(self, index, lang):
+        lines = self.sourceLines if lang == Lang.SOURCE else self.destLines
+
+        for token in lines[index].split():
             self.__processToken(token, lang)
 
 	#Add annotative tokens after counting word tokens
-        #line = " ".join([Bicorpus.start_token(), line, Bicorpus.end_token()])
+        lines[index] = " ".join([Bicorpus.start_token(), lines[index], Bicorpus.end_token()])
 
     def __processBisequence(self, index):
         #if index == 0:
             #print(self.sourceLines[index])
             #print(self.destLines[index])
 
-        self.sourceLines[index] = Bicorpus.__cleanSequence(self.sourceLines[index], index)
+        self.sourceLines[index] = Bicorpus.__cleanSequence(self.sourceLines[index])
         self.destLines[index] = Bicorpus.__cleanSequence(self.destLines[index])
 
         #if index == 0:
             #print(self.sourceLines[index])
             #print(self.destLines[index])
 
-        self.__processSequence(self.sourceLines[index], lang = Lang.SOURCE)
-        self.__processSequence(self.destLines[index], lang = Lang.DEST)
+        self.__processSequence(index, lang = Lang.SOURCE)
+        self.__processSequence(index, lang = Lang.DEST)
 
 
     #Returns a tuple of (word to index dictionary, index to word dictionary)
@@ -149,7 +151,7 @@ class Bicorpus:
             if (i + 1) % logFrequency == 0: print("{} sequences read.".format(i + 1))
 
         #Ensure both source and destination vocabularies have equal vocabulary sizes to get CNTK to work
-        minVocabSize = min(len(sourceWordCounts), len(destWordCounts))
+        minVocabSize = min(len(self.sourceWordCounts), len(self.destWordCounts))
         if not(vocabSize) or (minVocabSize < vocabSize):
             vocabSize = minVocabSize
 
