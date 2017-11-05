@@ -1,22 +1,28 @@
-
+print("Started original.py")
 # coding: utf-8
 
 # In[1]:
 
+#print("About to import cntk")
 import cntk as C
+#print("Imported cntk")
+#print("About to import numpy")
 import numpy as np
+#print("Imported numpy")
 
 #Import local modules
-import os
-import sys
-modulesPath = "scripts"
-modulesPath = os.path.abspath(os.path.join(modulesPath))
-if modulesPath not in sys.path: sys.path.append(modulesPath)
-from bicorpus import Bicorpus
+#import os
+#import sys
+#modulesPath = "scripts"
+#modulesPath = os.path.abspath(os.path.join(modulesPath))
+#if modulesPath not in sys.path: sys.path.append(modulesPath)
+from scripts.bicorpus import Bicorpus
+print("Imported bicorpus")
 
 print(C.device.all_devices())
-#C.device.try_set_default_device(C.device.gpu(0))
+C.device.try_set_default_device(C.device.gpu(0))
 print("Set the device.")
+
 
 C.cntk_py.set_fixed_random_seed(0)
 
@@ -30,17 +36,16 @@ use_embedding = True
 embedding_dim = 200
 length_increase = 1.5
 
-"""
-vocabSize = 10000
-sourceVocabSize = vocabSize
-destVocabSize = vocabSize
-"""
+#vocabSize = 10000
+#sourceVocabSize = vocabSize
+#destVocabSize = vocabSize
 
 #numSequences = 10000
 training_ratio = 3 / 4
 max_epochs = 1
 #epoch_size = 50 #int(numSequences * training_ratio)
 
+print("Set hyperparameters")
 
 # In[2]:
 
@@ -53,6 +58,8 @@ destTraining = "corpora/europarl-v7.es-en.en"
 
 with open(sourceTraining, "r", encoding = "utf-8") as sourceFile:
     sourceLines = sourceFile.readlines()
+
+print("Read sourceLines")
 with open(destTraining, "r", encoding = "utf-8") as destFile:
     destLines = destFile.readlines()
 
@@ -60,7 +67,9 @@ print("Read the source data.")
 
 trainingCorp = Bicorpus(sourceLines, destLines) #, numSequences = 500000)
 
+print("Done cleaning source data.")
 
+"""
 # In[3]:
 
 cleanedSource, cleanedDest = trainingCorp.training_lines()
@@ -276,11 +285,9 @@ def train(sourceW2I, destW2I, s2smodel, max_epochs, epoch_size):
             startIndex = mbs * minibatch_size
             endIndex = startIndex + minibatch_size
             
-            """
             mb_train = train_reader.next_minibatch(minibatch_size)
             trainer.train_minibatch({criterion.arguments[0]: mb_train[train_reader.streams.features],
                                      criterion.arguments[1]: mb_train[train_reader.streams.labels]})
-            """
             
             sourceBatch = sequencesToOneHot(cleanedSource[startIndex:endIndex], sourceW2I)
             destBatch = sequencesToOneHot(cleanedDest[startIndex:endIndex], destW2I)
@@ -292,23 +299,21 @@ def train(sourceW2I, destW2I, s2smodel, max_epochs, epoch_size):
             
             progress_printer.update_with_trainer(trainer, with_metric = True)
             
-            """
-            if mbs % eval_freq == 0:
-                mb_valid = valid_reader.next_minibatch(1)
-                e = model_greedy(mb_valid[valid_reader.streams.features])
-                
-                #Need to i2w to my own dictionary
-                #Really, I just need to add a function to my Bicorpus class
-                print(format_sequence(sparse_to_dense(mb_valid[valid_reader.streams.features]), sourceI2W))
-                print("-->")
-                print(format_sequences(e, destI2W))
-                
-                if use_attention:
-                    debug_attention(model_greedy, mb_valid[valid_reader.streams.features])
-            """
+            #if mbs % eval_freq == 0:
+                #mb_valid = valid_reader.next_minibatch(1)
+                #e = model_greedy(mb_valid[valid_reader.streams.features])
+                #
+                ##Need to i2w to my own dictionary
+                ##Really, I just need to add a function to my Bicorpus class
+                #print(format_sequence(sparse_to_dense(mb_valid[valid_reader.streams.features]), sourceI2W))
+                #print("-->")
+                #print(format_sequences(e, destI2W))
+                #
+                #if use_attention:
+                    #debug_attention(model_greedy, mb_valid[valid_reader.streams.features])
                     
-            total_samples += minibatch_size #mb.train[train_reader.streams.labels].num_samples
-            mbs += 1
+            #total_samples += minibatch_size #mb.train[train_reader.streams.labels].num_samples
+            #mbs += 1
                 
     progress_printer.epoch_summary(with_metric = True)
 
@@ -373,48 +378,4 @@ translate("ella es buena", model, sourceW2I, destI2W)
 
 #debugging(model)
 
-
-# In[ ]:
-
-
-
-
-# In[ ]:
-
-
-
-
-# In[ ]:
-
-
-
-
-# In[ ]:
-
-
-
-
-# In[ ]:
-
-
-
-
-# In[ ]:
-
-
-
-
-# In[ ]:
-
-
-
-
-# In[ ]:
-
-
-
-
-# In[ ]:
-
-
-
+"""
