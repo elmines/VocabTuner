@@ -14,6 +14,10 @@ modulesPath = os.path.abspath(os.path.join(modulesPath))
 if modulesPath not in sys.path: sys.path.append(modulesPath)
 from bicorpus import Bicorpus
 
+print(C.device.all_devices())
+#C.device.try_set_default_device(C.device.gpu(0))
+print("Set the device.")
+
 C.cntk_py.set_fixed_random_seed(0)
 
 #Model hyperparameters
@@ -52,7 +56,9 @@ with open(sourceTraining, "r", encoding = "utf-8") as sourceFile:
 with open(destTraining, "r", encoding = "utf-8") as destFile:
     destLines = destFile.readlines()
 
-trainingCorp = Bicorpus(sourceLines, destLines, numSequences = 500000)
+print("Read the source data.")
+
+trainingCorp = Bicorpus(sourceLines, destLines) #, numSequences = 500000)
 
 
 # In[3]:
@@ -360,11 +366,12 @@ def debugging(trained_model):
         translate(query, model, sourceW2I, destI2W)
         query = input("Enter a Spanish phrase (or just <Enter> to quit): ").strip()
         
-
+print("Trying simple query on model")
+translate("ella es buena", model, sourceW2I, destI2W)
 
 # In[ ]:
 
-debugging(model)
+#debugging(model)
 
 
 # In[ ]:
