@@ -23,6 +23,9 @@ print(C.device.all_devices())
 C.device.try_set_default_device(C.device.gpu(0))
 print("Set the device.")
 
+print("About to instantiate a Bicorpus")
+words = Bicorpus(["ethan is happy", "joe was here"], ["ethan esta feliz", "jose estuvo aqui"])
+print("Instantiated a Bicorpus")
 
 C.cntk_py.set_fixed_random_seed(0)
 
@@ -63,14 +66,15 @@ print("Read sourceLines")
 with open(destTraining, "r", encoding = "utf-8") as destFile:
     destLines = destFile.readlines()
 
-print("Read the source data.")
+print("Read the source data.", flush = True)
 
-trainingCorp = Bicorpus(sourceLines, destLines) #, numSequences = 500000)
+trainingCorp = Bicorpus(sourceLines, destLines) #,  numSequences = 10)
 
-print("Done cleaning source data.")
+print("Done cleaning source data.", flush = True)
 
-"""
 # In[3]:
+del sourceLines
+del destLines
 
 cleanedSource, cleanedDest = trainingCorp.training_lines()
 
@@ -322,12 +326,15 @@ def train(sourceW2I, destW2I, s2smodel, max_epochs, epoch_size):
 
 import datetime
 
+print("About to train model", flush = True)
 model = create_model()
 train(sourceI2W, destI2W, model, max_epochs, epoch_size)
+print("Finished training", flush = True)
 
 timeSuffix = datetime.datetime.now().strftime("%b_%d")
 modelPath = "model_" + timeSuffix
 model.save(modelPath)
+print("Saved model to", modelPath, flush = True)
 
 
 # In[ ]:
@@ -358,8 +365,8 @@ def translate(text, model, sourceW2I, destI2W):
     
     #print(translation)
     for i in prediction:
-        if i == len(destI2W): print("UNK")
-        else: print(destI2W[i])
+        if i == len(destI2W): print("UNK", flush = True)
+        else: print(destI2W[i], flush = True)
     
     
 
@@ -371,11 +378,10 @@ def debugging(trained_model):
         translate(query, model, sourceW2I, destI2W)
         query = input("Enter a Spanish phrase (or just <Enter> to quit): ").strip()
         
-print("Trying simple query on model")
+print("Trying simple query on model", flush = True)
 translate("ella es buena", model, sourceW2I, destI2W)
 
 # In[ ]:
 
 #debugging(model)
 
-"""

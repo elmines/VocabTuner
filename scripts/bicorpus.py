@@ -145,10 +145,10 @@ class Bicorpus:
        return w2i, i2w
 
     def __genIndexDicts(self, vocabSize, numSequences ):
-        logFrequency = numSequences // 20
+        logFrequency = numSequences // 20 if numSequences > 20 else 1
         for i in range(numSequences):
             self.__processBisequence(i)
-            if (i + 1) % logFrequency == 0: print("{} sequences read.".format(i + 1))
+            if (i + 1) % logFrequency == 0: print("{} sequences read.".format(i + 1), flush = True)
 
         #Ensure both source and destination vocabularies have equal vocabulary sizes to get CNTK to work
         minVocabSize = min(len(self.sourceWordCounts), len(self.destWordCounts))
