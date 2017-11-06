@@ -232,25 +232,45 @@ def sequencesToOneHot(sequences, w2i):
 #The original had "vocab" as a parameter but never used it
 #The original had CTF readers train_reader and validation_reader
 def train(sourceW2I, destW2I, s2smodel, max_epochs, epoch_size):
+
+    oneHotSource = sequencesToOneHot(cleanedSource, sourceW2I)
+    oneHotDest = sequenceToOneHot(cleanedDest, destW2I)
+
+    data = C.io.MinibatchSourceFromData(dict(x = oneHotSource, y = oneHotDest))
+
+
     model_train = create_model_train(s2smodel)
     criterion = create_criterion_function(model_train)
     #model_greedy = create_model_greedy(s2smodel)
     
     minibatch_size = 50
     lr = 0.001 if use_attention else 0.005
+
+
     learner = C.fsadagrad(model_train.parameters,
                          lr = C.learning_rate_schedule([lr]*2 + [lr/2]*3 +[lr/4], C.UnitType.sample, epoch_size),
                          momentum = C.momentum_as_time_constant_schedule(1100),
                          gradient_clipping_threshold_per_sample = 2.3,
                          gradient_clipping_with_truncation = True)
-    trainer = C.Trainer(None, criterion, learner)                      #
+
+
+    trainer = C.Trainer(model.parameters, criterion, learner)                      #
+
+    training_session(trainer = trainer,
+                     mb_source = data,
+                     model_inputs_to_streams = {model_train[""] : train_source
+                     mb_size = minibatch_size, 
+                     
     
+"""
     total_samples = 0
     mbs = 0
     eval_freq = 100
-    
     C.logging.log_number_of_parameters(model_train) ; print()
     progress_printer = C.logging.ProgressPrinter(freq = 30, tag = "Training")
+
+
+    
     
     #sparse_to_dense = create_sparse_to_dense(sourceVocabSize)
     
@@ -294,7 +314,7 @@ def train(sourceW2I, destW2I, s2smodel, max_epochs, epoch_size):
             mbs += 1
                 
     progress_printer.epoch_summary(with_metric = True)
-
+"""
 
 # In[ ]:
 
