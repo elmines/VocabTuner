@@ -1,32 +1,9 @@
-print("Started original.py")
-# coding: utf-8
-
-# In[1]:
-
-#print("About to import cntk")
 import cntk as C
-#print("Imported cntk")
-#print("About to import numpy")
 import numpy as np
-#print("Imported numpy")
-
-#Import local modules
-#import os
-#import sys
-#modulesPath = "scripts"
-#modulesPath = os.path.abspath(os.path.join(modulesPath))
-#if modulesPath not in sys.path: sys.path.append(modulesPath)
+import datetime
 from scripts.bicorpus import Bicorpus
-print("Imported bicorpus")
 
-print(C.device.all_devices())
-#C.device.try_set_default_device(C.device.gpu(0))
-print("Set the device.")
-
-#print("About to instantiate a Bicorpus")
-#words = Bicorpus(["ethan is happy", "joe was here"], ["ethan esta feliz", "jose estuvo aqui"])
-#print("Instantiated a Bicorpus")
-
+C.device.try_set_default_device(C.device.gpu(0))
 C.cntk_py.set_fixed_random_seed(0)
 
 #Model hyperparameters
@@ -39,7 +16,7 @@ use_embedding = True
 embedding_dim = 200
 length_increase = 1.5
 
-#vocabSize = 10000
+numWords = 10000
 #sourceVocabSize = vocabSize
 #destVocabSize = vocabSize
 
@@ -48,9 +25,6 @@ training_ratio = 3 / 4
 max_epochs = 1
 #epoch_size = 50 #int(numSequences * training_ratio)
 
-print("Set hyperparameters")
-
-# In[2]:
 
 files = {}
 
@@ -67,7 +41,7 @@ with open(destTraining, "r", encoding = "utf-8") as destFile:
 
 print("Read the source data.", flush = True)
 
-trainingCorp = Bicorpus(sourceLines, destLines) #,  numSequences = 10)
+trainingCorp = Bicorpus(sourceLines, destLines, vocabSize = numWords) #,  numSequences = 10)
 
 print("Done cleaning source data.", flush = True)
 
@@ -94,8 +68,8 @@ seq_end_index = destW2I[Bicorpus.end_token()]
 seq_start = C.constant(np.asarray([i == seq_start_index for i in range(destVocabSize)], dtype = my_dtype))
 
 
-print(sourceVocabSize)
-print(destVocabSize)
+print("sourceVocabSize =", sourceVocabSize)
+print("destVocabSize =", destVocabSize)
 
 
 # In[4]:
@@ -283,7 +257,7 @@ def train(sourceW2I, destW2I, s2smodel, max_epochs, epoch_size):
     for epoch in range(max_epochs):
         mb_num = 0
         while total_samples < (epoch + 1) * epoch_size:
-            print("Trained {0} of {1} samples".format(total_samples, epoch_size), flush = True)
+            print("Trained {0} of {1} samples at {2}".format(total_samples, epoch_size, datetime.datetime.now().strftime("%H:%M:%S")), flush = True)
             #print("total_samples =", total_samples)
             #print("mbs =", mbs)
             startIndex = mbs * minibatch_size
@@ -324,7 +298,6 @@ def train(sourceW2I, destW2I, s2smodel, max_epochs, epoch_size):
 
 # In[ ]:
 
-import datetime
 
 print("About to train model", flush = True)
 model = create_model()
