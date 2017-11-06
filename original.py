@@ -20,7 +20,7 @@ from scripts.bicorpus import Bicorpus
 print("Imported bicorpus")
 
 print(C.device.all_devices())
-C.device.try_set_default_device(C.device.gpu(0))
+#C.device.try_set_default_device(C.device.gpu(0))
 print("Set the device.")
 
 print("About to instantiate a Bicorpus")
@@ -289,9 +289,9 @@ def train(sourceW2I, destW2I, s2smodel, max_epochs, epoch_size):
             startIndex = mbs * minibatch_size
             endIndex = startIndex + minibatch_size
             
-            mb_train = train_reader.next_minibatch(minibatch_size)
-            trainer.train_minibatch({criterion.arguments[0]: mb_train[train_reader.streams.features],
-                                     criterion.arguments[1]: mb_train[train_reader.streams.labels]})
+            #mb_train = train_reader.next_minibatch(minibatch_size)
+            #trainer.train_minibatch({criterion.arguments[0]: mb_train[train_reader.streams.features],
+                                     #criterion.arguments[1]: mb_train[train_reader.streams.labels]})
             
             sourceBatch = sequencesToOneHot(cleanedSource[startIndex:endIndex], sourceW2I)
             destBatch = sequencesToOneHot(cleanedDest[startIndex:endIndex], destW2I)
