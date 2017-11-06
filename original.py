@@ -23,9 +23,9 @@ print(C.device.all_devices())
 #C.device.try_set_default_device(C.device.gpu(0))
 print("Set the device.")
 
-print("About to instantiate a Bicorpus")
-words = Bicorpus(["ethan is happy", "joe was here"], ["ethan esta feliz", "jose estuvo aqui"])
-print("Instantiated a Bicorpus")
+#print("About to instantiate a Bicorpus")
+#words = Bicorpus(["ethan is happy", "joe was here"], ["ethan esta feliz", "jose estuvo aqui"])
+#print("Instantiated a Bicorpus")
 
 C.cntk_py.set_fixed_random_seed(0)
 
@@ -62,7 +62,6 @@ destTraining = "corpora/europarl-v7.es-en.en"
 with open(sourceTraining, "r", encoding = "utf-8") as sourceFile:
     sourceLines = sourceFile.readlines()
 
-print("Read sourceLines")
 with open(destTraining, "r", encoding = "utf-8") as destFile:
     destLines = destFile.readlines()
 
@@ -284,6 +283,7 @@ def train(sourceW2I, destW2I, s2smodel, max_epochs, epoch_size):
     for epoch in range(max_epochs):
         mb_num = 0
         while total_samples < (epoch + 1) * epoch_size:
+            print("Trained {0} of {1} samples".format(total_samples, epoch_size), flush = True)
             #print("total_samples =", total_samples)
             #print("mbs =", mbs)
             startIndex = mbs * minibatch_size
@@ -316,8 +316,8 @@ def train(sourceW2I, destW2I, s2smodel, max_epochs, epoch_size):
                 #if use_attention:
                     #debug_attention(model_greedy, mb_valid[valid_reader.streams.features])
                     
-            #total_samples += minibatch_size #mb.train[train_reader.streams.labels].num_samples
-            #mbs += 1
+            total_samples += minibatch_size #mb.train[train_reader.streams.labels].num_samples
+            mbs += 1
                 
     progress_printer.epoch_summary(with_metric = True)
 
