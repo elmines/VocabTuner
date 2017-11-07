@@ -106,16 +106,10 @@ class Bicorpus:
         lines[index] = " ".join([Bicorpus.start_token(), lines[index], Bicorpus.end_token()])
 
     def __processBisequence(self, index):
-        #if index == 0:
-            #print(self.sourceLines[index])
-            #print(self.destLines[index])
 
         self.sourceLines[index] = Bicorpus.__cleanSequence(self.sourceLines[index])
         self.destLines[index] = Bicorpus.__cleanSequence(self.destLines[index])
 
-        #if index == 0:
-            #print(self.sourceLines[index])
-            #print(self.destLines[index])
 
         self.__processSequence(index, lang = Lang.SOURCE)
         self.__processSequence(index, lang = Lang.DEST)
@@ -171,3 +165,5 @@ class Bicorpus:
 
     def getI2WDicts(self):
         return self.sourceI2W, self.destI2W
+
+    def writeFiles(self):

@@ -10,5 +10,17 @@ corpDir = "../corpora"
 sourceCorp = "".join([corpDir, "/", docPrefix, sourceLang, "-", destLang, ".", sourceLang])
 destCorp = "".join([corpDir, "/", docPrefix, sourceLang, "-", destLang, ".", destLang])
 
+numWords = 30000
+
+
 print(sourceCorp, destCorp)
-#sourceCorp = corpDir 
+
+
+with open(sourceCorp, "r", encoding = "utf-8") as sourceFile:
+    sourceLines = sourceFile.readlines()
+
+with open(destCorp, "r", encoding = "utf-8") as destFile:
+    destLines = destFile.readlines()
+
+
+

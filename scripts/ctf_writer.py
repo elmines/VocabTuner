@@ -37,8 +37,8 @@ class CTFFile:
 
        i = 0
        while i < len(sourceTokens) and i < len(destTokens):
-           sourceToken = CTFFile.__cleanToken(sourceTokens[i])
-           destToken = CTFFile.__cleanToken(destTokens[i])
+           sourceToken = sourceTokens[i] #CTFFile.__cleanToken(sourceTokens[i])
+           destToken =   destTokens[i]   #CTFFile.__cleanToken(destTokens[i])
            row = str(self.sequenceId) + ' |' + self.sourceLabel + " " + sourceToken + " |" + self.destLabel + " " + destToken + "\n"
            self.out.write(row)
     

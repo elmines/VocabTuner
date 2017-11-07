@@ -20,7 +20,7 @@ class one2one(MutableMapping):
     def __breaks_mapping():
         return "Cannot alter unknown_x <--> unknown_y mapping."
 
-    def __init__(self, unknown_x = None):
+    def __init__(self, unknown_x = None, unknown_y = None):
         self.x2y = {}
         self.y2x = {}
 
