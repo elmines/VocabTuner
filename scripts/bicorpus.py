@@ -2,32 +2,40 @@ from enum import Enum
 from collections import defaultdict
 import itertools
 
+from one2one import one2one
+
 class Lang(Enum):
     SOURCE = 0
     DEST = 1
 
 class Bicorpus:
 
-    #Dictionary: int -> (list of source langauge lines, list of dest language lines)
-    #The integer key indicates the number of byte-pair merges
-    altLines = None
-    
-    #Dictionary: int -> (list of source langauge lines, list of dest language lines)
-    #The integer key indicates the number of byte-pair merges
-    altW2I = None
-    altI2W = None
 
+    #########################RAW, INPUT TEXT########################
+    rawSource = None
+    rawDest = None
+
+    #########################CORPUS TEXT#############################
     #The original (cleaned) lines of the text with no BPE merges
     #Also available via altLines[0]
     sourceLines = None
     destLines = None
+    #Dictionary: int -> (list of source langauge lines, list of dest language lines)
+    #The integer key indicates the number of byte-pair merges
+    altLines = None
+    
+
+
+
+    
 
     #The original one-hot vocabulary indices with no BPE merges
     #Also available via altIndices[0]
-    sourceW2I = None
-    sourceI2W = None
-    destW2I = None
-    destI2W = None 
+    sourceMap = None
+    destMap = None
+    #Dictionary: int -> (Source word<-->int mapping, Dest word<-->int mapping)
+    #The integer key indicates the number of byte-pair merges
+    altMap= None
 
     #Only to be used in our earlier model, while still representing input as full words
     sourceWordCounts = None
@@ -41,118 +49,141 @@ class Bicorpus:
             raise ValueError("More sequences requested than available in sourceLines and destLines.")
 
         if not(numSequences): numSequences = len(sourceLines)
-        self.sourceLines = sourceLines
-        self.destLines = destLines
-        
+        self.rawSource = sourceLines
+        self.rawDest = destLines
+
+
+        self.sourceLines = []
+        self.destLines = []
+
         self.sourceWordCounts = defaultdict(int)
         self.destWordCounts = defaultdict(int)
-        (self.sourceW2I, self.destW2I), (self.sourceI2W, self.destI2W) = self.__genIndexDicts(vocabSize, numSequences)
+        self.sourceMap, self.destMap = self.__genIndexDicts(vocabSize, numSequences)
 
         self.altLines = {}
         self.altLines[0] = (self.sourceLines, self.destLines)
 
-        self.altW2I = {}
-        self.altW2I[0] = (self.sourceW2I, self.destW2I)
+        self.altMap = {}
+        self.altMap[0] = (self.sourceMap, self.destMap)
 
-        self.altI2W = {}
-        self.altI2W[0] = (self.sourceI2W, self.destW2I)
 
 
 ##########################Static Functions##################################
 
   ########################Class constants##########################
     @staticmethod
-    def start_token():
+    def START():
         return "<s>"
 
     @staticmethod
-    def end_token():
+    def END():
         return "</s>"
+
+
+    @staticmethod
+    def UNKWord():
+        return "<UNK>"
+
+
+    @staticmethod
+    def __UNKIndex():
+        return 0;
 
     @staticmethod
     def __EMPTY():
         return ""
 
+    @staticmethod
+    def __BADToken():
+        return "<BAD>"
+
+   
+
    #######################Class methods##############################
+    @staticmethod
+    def __addAnnotativeTokens(wordMapping, nextIndex):
+       wordMapping[Bicorpus.START()] = nextIndex
+       nextIndex += 1
+       wordMapping[Bicorpus.END()] = nextIndex
+       nextIndex += 1
+       wordMapping[Bicorpus.EMPTY()] = nextIndex
 
     @staticmethod
     def __cleanToken(token):
         chars = []
         for char in token:
             if char.isalpha(): chars.append(char.lower())
-            elif char.isdigit(): chars.append(char)
+            elif char.isdigit(): return Bicorpus.__BAD()  #Punctuation can be skipped over, but numeric data will just confuse the translation
     
         return Bicorpus.__EMPTY().join(chars)
 
+    @staticmethod
+    def __cleanSequence(sequence):
+        tokens = [Bicorpus.__cleanToken(token) for token in sequence.split(" ")]
+        return " ".join(tokens)
 ##########################Private functions#################################
 
-    @staticmethod
-    def __cleanSequence(sequence, index = -1):
-        tokens = [Bicorpus.__cleanToken(token) for token in sequence.split(" ")]
-        #if index == 0: print(tokens)
-        return " ".join(tokens)
 
     def __processToken(self, token, lang):
         if lang == Lang.SOURCE: self.sourceWordCounts[token] += 1
         else:                   self.destWordCounts[token] += 1
         
-    def __processSequence(self, index, lang):
+    def __processSequence(self, line, lang):
         lines = self.sourceLines if lang == Lang.SOURCE else self.destLines
 
-        for token in lines[index].split():
+        for token in line.split():
             self.__processToken(token, lang)
 
 	#Add annotative tokens after counting word tokens
-        lines[index] = " ".join([Bicorpus.start_token(), lines[index], Bicorpus.end_token()])
+        lines.insert( " ".join([Bicorpus.start_token(), line, Bicorpus.end_token()]) )
 
-    def __processBisequence(self, index):
+    def __processBisequence(self, readIndex):
+        """
+	    Return True if the sequences could be written and False otherwise.
+	"""
 
-        self.sourceLines[index] = Bicorpus.__cleanSequence(self.sourceLines[index])
-        self.destLines[index] = Bicorpus.__cleanSequence(self.destLines[index])
+        sourceLine = Bicorpus.__cleanSequence(self.sourceLines[readIndex])
+        destLine = Bicorpus.__cleanSequence(self.destLines[readIndex])
 
+        if (Bicorpus.BADToken() in sourceLine) or (Bicorpus.BADToken() in destLine): return False
 
-        self.__processSequence(index, lang = Lang.SOURCE)
-        self.__processSequence(index, lang = Lang.DEST)
+        self.__processSequence(sourceLine, lang = Lang.SOURCE)
+        self.__processSequence(destLine, lang = Lang.DEST)
+        return True
 
 
     #Returns a tuple of (word to index dictionary, index to word dictionary)
-    def __indexDicts(self, lang, size):
+    def __indexDict(self, lang, size):
        wordCounts = self.sourceWordCounts if lang == Lang.SOURCE else self.destWordCounts
-       if not(size) or size > len(wordCounts): size = len(wordCounts) 
 
        #Words in descending order of frequency
        words = sorted(wordCounts, key = wordCounts.get, reverse = True)
 
-       w2i = {}
-       i2w = {}
-       for i in range(size):
-           w2i[words[i]] = i
-           i2w[i] = words[i]
+       wordMap = one2one(unknown_x = Bicorpus.__UNKWord(), unknown_y = 0)
+       i = 1
+       while i < size + 1:
+           wordMap[ words[i] ] = i
+           i += 1
 
-       #Add annotative tokens
-       w2i[Bicorpus.start_token()] = size
-       w2i[Bicorpus.end_token()] = size + 1
-        
-       i2w[size] = Bicorpus.start_token()
-       i2w[size + 1] = Bicorpus.end_token()
+       Bicorpus.__addAnnotativeTokens(wordMap, i)
+       return wordMap
 
-       return w2i, i2w
-
-    def __genIndexDicts(self, vocabSize, numSequences ):
+    def __genIndexDicts(self, numWords, numSequences):
         logFrequency = numSequences // 20 if numSequences > 20 else 1
+
         for i in range(numSequences):
             self.__processBisequence(i)
             if (i + 1) % logFrequency == 0: print("{} sequences read.".format(i + 1), flush = True)
 
-        #Ensure both source and destination vocabularies have equal vocabulary sizes to get CNTK to work
+        #Ensure both source and destination vocabularies have equal vocabulary sizes to get CNTK to work (why is that necessary?)
         minVocabSize = min(len(self.sourceWordCounts), len(self.destWordCounts))
-        if not(vocabSize) or (minVocabSize < vocabSize):
-            vocabSize = minVocabSize
+        if not(numWords) or (minVocabSize < numWords):
+            numWords = minVocabSize
 
-        sourceW2I, sourceI2W = self.__indexDicts(Lang.SOURCE, vocabSize)
-        destW2I, destI2W = self.__indexDicts(Lang.DEST, vocabSize)
+        sourceMap = self.__indexDict(Lang.SOURCE, numWords)
+        destMap = self.__indexDict(Lang.DEST, numWords)
 
-        return (sourceW2I, destW2I), (sourceI2W, destI2W)
+        return sourceMap, destMap
 
 ############################Public functions##############################
 
@@ -160,10 +191,18 @@ class Bicorpus:
     def training_lines(self):
         return self.sourceLines, self.destLines
 
-    def getW2IDicts(self):
-        return self.sourceW2I, self.destW2I
+    def getMaps(self):
+        return self.sourceMap, self.destMap
 
-    def getI2WDicts(self):
-        return self.sourceI2W, self.destI2W
+    def writeMapping(self, path, lang):
+        wordMap = self.sourceMap if lang == Lang.SOURCE else self.destMap
 
-    def writeFiles(self):
+	with open(path, "w") as dictFile:
+            dictFile.write( str(len(wordMap)) + "\n") #Vocabulary size
+
+            toWrite = "\n".join( [ word + " " + index for word, index in wordMap.items() ] )
+            dictFile.write(toWrite)
+	
+	print("Wrote", path)
+
+
