@@ -68,7 +68,6 @@ class Bicorpus:
         self.altMap[0] = (self.sourceMap, self.destMap)
 
 
-
 ##########################Static Functions##################################
 
   ########################Class constants##########################
@@ -199,16 +198,7 @@ class Bicorpus:
         for sourceLine, destLine in itertools.zip_longest(self.sourceLines, self.destLines, fillvalue = Bicorpus.__BADToken()):
            writer.writeSequence(sourceLine, destLine) 
         writer.close()
-        print("Wrote", path)
 
     def writeMapping(self, path, lang):
         wordMap = self.sourceMap if lang == Lang.SOURCE else self.destMap
-
-        with open(path, "w") as dictFile:
-            dictFile.write( str(len(wordMap)) + "\n") #Vocabulary size
-
-            toWrite = "\n".join( [ word + " " + str(index) for word, index in wordMap.items() ] )
-            dictFile.write(toWrite)	
-        print("Wrote", path)
-
-
+        wordMap.write(path)

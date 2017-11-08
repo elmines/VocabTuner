@@ -1,6 +1,7 @@
 from enum import Enum
 from collections import MutableMapping
 from copy import deepcopy
+import pydoc
 
 class Set(Enum):
     DOMAIN = 0
@@ -38,6 +39,23 @@ class one2one(MutableMapping):
             self.y2x[unknown_y] = unknown_x
         elif unknown_x or unknown_y:
             raise ValueError("One must specify both unknown_x and unknown_y or neither.")
+
+    @staticmethod
+    def load(path):
+        with open(path, "r") as dictFile:
+            dictFile.readline() #Consume number of entries
+            types = dictFile.readline().split(" ")
+            x_type = pydoc.locate(types[0])
+            y_type = pydocs.locate(types[1])
+            unknown_entry = dictFile.readline().split(" ")
+
+            mapping = one2one(x_type, y_type, unknown_x = unknown_entry[0], unknown_y = unknown_entry[1])
+            line = dictFile.readline()
+            while line:
+                pair = line.split(" ")
+                mapping[ x_type(pair[0]) ] = y_type(pair[1])	
+                line = dictFile.readline()
+            return mapping
 
     def __getitem__(self, key):
         if key in self.x2y:
@@ -96,7 +114,17 @@ class one2one(MutableMapping):
 
     def y2x_dict(self):
         return deepcopy(self.y2x)
-    
 
+
+    def __writeEntry(self, dictFile, key):
+       dictFile.write(key + " " + str(self.x2y[key]) + "\n")
+
+    def write(self, path):
+        with open(path, "w") as dictFile:
+            dictFile.write( str(len(self.x2y)) + "\n")
+            dictFile.write( str(self.x_type) + " " + str(self.y_type) + "\n" )
+            self.__writeEntry(dictFile, self.unknown_x) 
+            for key in self.x2y.keys():
+                if key != self.unknown_x: self.__writeEntry(dictFile, key)
 
 

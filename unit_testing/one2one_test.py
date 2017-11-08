@@ -64,6 +64,13 @@ except TypeError as e:
     print(e.args[0])
 print()
 
+path = "output.dict"
+bidict.write(path)
+print("Wrote", path)
+cloned = one2one.load(path)
+print(cloned)
+
+
 print("Trying to use a different invalid type with the dictionary")
 try:
     bidict[ bytes("Ethan", encoding = "utf-8") ] = 42

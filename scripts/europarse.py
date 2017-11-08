@@ -1,3 +1,4 @@
+import os
 import sys
 import bicorpus
 
@@ -10,12 +11,11 @@ if len(sys.argv) > 1:
 def parseCorpora(sourceLang, destLang, numWords = 30000, numSequences = 50000):
 
     cleanedPrefix = "cleaned-"
-    docPrefix = "europarl-v7."
+    docPrefix = "europarl-v7." + sourceLang + "-" + destLang + "."
     corpDir = "../corpora"
     
-    sourcePath = "".join([corpDir, "/", docPrefix, sourceLang, "-", destLang, ".", sourceLang])
-    destPath = "".join([corpDir, "/", docPrefix, sourceLang, "-", destLang, ".", destLang])
-    
+    sourcePath = os.path.abspath( os.path.join(corpDir, docPrefix + sourceLang) )
+    destPath = os.path.abspath( os.path.join(corpDir, docPrefix + destLang) )
     
     with open(sourcePath, "r", encoding = "utf-8") as sourceFile:
         print("Reading lines from", sourcePath)
@@ -27,13 +27,18 @@ def parseCorpora(sourceLang, destLang, numWords = 30000, numSequences = 50000):
     
     bp = bicorpus.Bicorpus(sourceLines, destLines, maxWords = numWords, maxSequences = numSequences)
 
-    sourceMapPath = "".join([corpDir, "/", docPrefix, sourceLang, "-", destLang, ".", sourceLang, ".dict"])
-    destMapPath = "".join([corpDir, "/", docPrefix, sourceLang, "-", destLang, ".", destLang, ".dict"])
+    sourceMapPath = os.path.abspath( os.path.join(corpDir, docPrefix + sourceLang + ".dict") )
+    destMapPath = os.path.abspath( os.path.join(corpDir, docPrefix + destLang + ".dict") )
+
 
     bp.writeMapping(sourceMapPath, bicorpus.Lang.SOURCE)
-    bp.writeMapping(destMapPath, bicorpus.Lang.DEST) 
+    print("Wrote", sourceMapPath)
 
-    
-    
-    ctfPath = "".join([corpDir, "/", docPrefix, sourceLang, "-", destLang, ".ctf"])
+    bp.writeMapping(destMapPath, bicorpus.Lang.DEST) 
+    print("Wrote", destMapPath)
+
+    ctfPath = os.path.abspath( os.path.join(corpDir, docPrefix + "ctf") )
     bp.writeCTF(ctfPath, sourceLang, destLang)
+    print("Wrote", ctfPath)
+
+    return (sourceMapPath, destMapPath, ctfPath)
