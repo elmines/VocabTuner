@@ -193,8 +193,11 @@ class Bicorpus:
     def getMaps(self):
         return self.sourceMap, self.destMap
 
-    #def writeCTF(self, path):
-        
+    def writeCTF(self, path, sourceLang, destLang):
+        writer = ctf_writer(path, sourceLang, destLang)
+        for sourceLine, destLine in itertools.zip_longest(self.sourceLines, self.DestLines, fillvalue = Bicorpus.__BAD()):
+           writeSequence(sourceLine, destLine) 
+        writer.close()
 
     def writeMapping(self, path, lang):
         wordMap = self.sourceMap if lang == Lang.SOURCE else self.destMap

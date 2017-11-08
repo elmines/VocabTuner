@@ -1,3 +1,4 @@
+import one2one
 
 class CTFFile:
     """
@@ -9,39 +10,25 @@ class CTFFile:
     out = None      #CTF output file
     sourceLabel = ""
     destLabel = ""
+    sourceMapping = None
+    destMapping = None
 
-    def __init__(self, path, sourceLabel, destLabel):
+    def __init__(self, path, sourceLabel, destLabel, sourceMapping = None, destMapping = None):
         self.out = open(path, "w")
         self.sourceLabel = sourceLabel
         self.destLabel = destLabel
+        self.sourceMapping = sourceMapping
+        self.destMapping = destMapping
         
-    #Class constant
-    @staticmethod
-    def __EMPTY():
-        return ""
 
-    @staticmethod
-    def __cleanToken(token):
-        chars = []
-        for char in token:
-            if char.isalpha(): chars.append(char.lower())
-            elif char.isdigit(): chars.append(char)
-    
-        if len(chars) > 0: return CTFFile.__EMPTY().join(chars)
-        else:              return CTFFile.__EMPTY()               #Case in which we have just non alphanumeric characters by themselves?
-
-    
     def writeSequence(self, sourceLine, destLine):
        sourceTokens = sourceLine.split()
        destTokens = destLine.split()
 
        i = 0
        while i < len(sourceTokens) and i < len(destTokens):
-           sourceToken = sourceTokens[i] #CTFFile.__cleanToken(sourceTokens[i])
-           destToken =   destTokens[i]   #CTFFile.__cleanToken(destTokens[i])
-           row = str(self.sequenceId) + ' |' + self.sourceLabel + " " + sourceToken + " |" + self.destLabel + " " + destToken + "\n"
-           self.out.write(row)
-    
+           if i > 0: self.out.write("\n")
+           self.__writeRow(self, sourceTokens[i], destTokens[i])
            i += 1
     
        i = self.__writeHalfRows(sourceTokens, self.sourceLabel, i)
@@ -49,10 +36,12 @@ class CTFFile:
     
        self.sequenceId += 1
 
+    def __WriteRow(self, sourceToken, destToken, i):
+        row = str(self.sequenceId) + " |" + self.sourceLabel + " " + word2Vec(sourceToken) + "#| " + sourceToken + " |" + self.destLabel + " " + word2Vec(destToken) + "#| " + destToken
 
     def __writeHalfRows(self, tokens, label, i):
         while i < len(tokens):
-           token = CTFFile.__cleanToken(tokens[i])
+           token = tokens[i]
            row = str(self.sequenceId) + ' |' + label + " " + token + "\n"
            self.out.write(row)
            i += 1
