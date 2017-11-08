@@ -7,7 +7,7 @@ if modulesPath not in sys.path: sys.path.append(modulesPath)
 from one2one import one2one
 
 
-bidict = one2one(unknown_val = "<UNK>")
+bidict = one2one(str, int, unknown_x = "<UNK>", unknown_y = -1)
 
 keys = ["Roderick", "Greg", "Manney", "Fregley", "Chirag", "Rowley"]
 
@@ -57,8 +57,22 @@ bidict[5] = "Rabble-rousing Rowley"
 print(bidict)
 print()
 
+print("Trying to use an invalid type with the dictionary")
+try:
+    bidict[ [3, 4, 1] ] = "ethan"
+except TypeError as e:
+    print(e.args[0])
+print()
+
+print("Trying to use a different invalid type with the dictionary")
+try:
+    bidict[ bytes("Ethan", encoding = "utf-8") ] = 42
+except TypeError as e:
+    print(e.args[0])
+print()
+
 print("Making a new dictionary within nothing set for unknown_val, and searching for a nonexistent key.")
-dual_dict = one2one()
+dual_dict = one2one(str, int)
 try:
     print(dual_dict["elmines"])
 except KeyError as e:

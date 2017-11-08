@@ -3,6 +3,7 @@ from collections import defaultdict
 import itertools
 
 from one2one import one2one
+from ctf_writer import CTFFile
 
 class Lang(Enum):
     SOURCE = 0
@@ -95,7 +96,7 @@ class Bicorpus:
 
     @staticmethod
     def __BADToken():
-        return "<BAD>"
+        return "<ERROR>"
 
    
 
@@ -157,7 +158,7 @@ class Bicorpus:
        #Words in descending order of frequency
        words = sorted(wordCounts, key = wordCounts.get, reverse = True)
 
-       wordMap = one2one(unknown_x = Bicorpus.UNK(), unknown_y = size)
+       wordMap = one2one(str, int, unknown_x = Bicorpus.UNK(), unknown_y = size)
 
        i = 0
        while i < size:
@@ -194,10 +195,11 @@ class Bicorpus:
         return self.sourceMap, self.destMap
 
     def writeCTF(self, path, sourceLang, destLang):
-        writer = ctf_writer(path, sourceLang, destLang)
-        for sourceLine, destLine in itertools.zip_longest(self.sourceLines, self.DestLines, fillvalue = Bicorpus.__BAD()):
-           writeSequence(sourceLine, destLine) 
+        writer = CTFFile(path, sourceLang, destLang, self.sourceMap, self.destMap)
+        for sourceLine, destLine in itertools.zip_longest(self.sourceLines, self.destLines, fillvalue = Bicorpus.__BADToken()):
+           writer.writeSequence(sourceLine, destLine) 
         writer.close()
+        print("Wrote", path)
 
     def writeMapping(self, path, lang):
         wordMap = self.sourceMap if lang == Lang.SOURCE else self.destMap
@@ -206,8 +208,7 @@ class Bicorpus:
             dictFile.write( str(len(wordMap)) + "\n") #Vocabulary size
 
             toWrite = "\n".join( [ word + " " + str(index) for word, index in wordMap.items() ] )
-            dictFile.write(toWrite)
-	
+            dictFile.write(toWrite)	
         print("Wrote", path)
 
 

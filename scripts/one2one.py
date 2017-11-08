@@ -9,6 +9,8 @@ class Set(Enum):
 class one2one(MutableMapping):
     x2y = None
     y2x = None
+    x_type = None
+    y_type = None
     unknown_x = None
     unknown_y = None
 
@@ -20,9 +22,14 @@ class one2one(MutableMapping):
     def __breaks_mapping():
         return "Cannot alter unknown_x <--> unknown_y mapping."
 
-    def __init__(self, unknown_x = None, unknown_y = None):
+    def __bad_type(self):
+        return "Key must be of type " + str(self.x_type) + " or " + str(self.y_type) + "."
+
+    def __init__(self, x_type, y_type, unknown_x = None, unknown_y = None):
         self.x2y = {}
         self.y2x = {}
+        self.x_type = x_type
+        self.y_type = y_type
 
         if unknown_x and unknown_y:
             self.unknown_x = unknown_x
@@ -38,13 +45,19 @@ class one2one(MutableMapping):
         if key in self.y2x:
             return self.y2x[key]
         if self.unknown_x:
+            if type(key) == self.x_type: return self.unknown_y
+            elif type(key) == self.y_type: return self.unknown_x
             return self.unknown_x
+
         raise KeyError(one2one.__key_not_found(key))
 
     def __setitem__(self, key, value):
       #Checked, and "in" does indeed perform a deep equality comparison
       if self.unknown_x in (key, value) or self.unknown_y in (key, value):
            raise ValueError(one2one.__breaks_mapping())
+      if type(key) != self.x_type and type(key) != self.y_type:
+           raise TypeError(self.__bad_type())
+
       if key in self.x2y:
           del self.y2x[ self.x2y[key] ]
       elif key in self.y2x:

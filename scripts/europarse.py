@@ -35,5 +35,5 @@ def parseCorpora(sourceLang, destLang, numWords = 30000, numSequences = 50000):
 
     
     
-    #ctfPath = "".join([corpDir, "/", cleanedPrefix, sourceLang, "-" destLang, ".ctf"])
-    #bp.writeCTF(ctfPath)
+    ctfPath = "".join([corpDir, "/", docPrefix, sourceLang, "-", destLang, ".ctf"])
+    bp.writeCTF(ctfPath, sourceLang, destLang)
