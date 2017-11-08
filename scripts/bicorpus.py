@@ -42,13 +42,13 @@ class Bicorpus:
     destWordCounts = None
 
 
-    def __init__(self, sourceLines, destLines, vocabSize = None, numSequences = None):
+    def __init__(self, sourceLines, destLines, maxWords = None, maxSequences = None):
         if len(sourceLines) != len(destLines):
             raise ValueError("Unequal number of source and destination language lines.")
-        if numSequences and (numSequences > len(sourceLines)):
+        if maxSequences and (maxSequences > len(sourceLines)):
             raise ValueError("More sequences requested than available in sourceLines and destLines.")
 
-        if not(numSequences): numSequences = len(sourceLines)
+        if not(maxSequences): maxSequences = len(sourceLines)
         self.rawSource = sourceLines
         self.rawDest = destLines
 
@@ -58,7 +58,7 @@ class Bicorpus:
 
         self.sourceWordCounts = defaultdict(int)
         self.destWordCounts = defaultdict(int)
-        self.sourceMap, self.destMap = self.__genIndexDicts(vocabSize, numSequences)
+        self.sourceMap, self.destMap = self.__genIndexDicts(maxWords, maxSequences)
 
         self.altLines = {}
         self.altLines[0] = (self.sourceLines, self.destLines)
@@ -81,7 +81,7 @@ class Bicorpus:
 
 
     @staticmethod
-    def UNKWord():
+    def UNK():
         return "<UNK>"
 
 
@@ -105,15 +105,13 @@ class Bicorpus:
        wordMapping[Bicorpus.START()] = nextIndex
        nextIndex += 1
        wordMapping[Bicorpus.END()] = nextIndex
-       nextIndex += 1
-       wordMapping[Bicorpus.EMPTY()] = nextIndex
 
     @staticmethod
     def __cleanToken(token):
         chars = []
         for char in token:
             if char.isalpha(): chars.append(char.lower())
-            elif char.isdigit(): return Bicorpus.__BAD()  #Punctuation can be skipped over, but numeric data will just confuse the translation
+            elif char.isdigit(): return Bicorpus.__BADToken()  #Punctuation can be skipped over, but numeric data will just confuse the translation
     
         return Bicorpus.__EMPTY().join(chars)
 
@@ -135,17 +133,17 @@ class Bicorpus:
             self.__processToken(token, lang)
 
 	#Add annotative tokens after counting word tokens
-        lines.insert( " ".join([Bicorpus.start_token(), line, Bicorpus.end_token()]) )
+        lines.append( " ".join([Bicorpus.START(), line, Bicorpus.END()]) )
 
     def __processBisequence(self, readIndex):
         """
 	    Return True if the sequences could be written and False otherwise.
 	"""
 
-        sourceLine = Bicorpus.__cleanSequence(self.sourceLines[readIndex])
-        destLine = Bicorpus.__cleanSequence(self.destLines[readIndex])
+        sourceLine = Bicorpus.__cleanSequence(self.rawSource[readIndex])
+        destLine = Bicorpus.__cleanSequence(self.rawDest[readIndex])
 
-        if (Bicorpus.BADToken() in sourceLine) or (Bicorpus.BADToken() in destLine): return False
+        if (Bicorpus.__BADToken() in sourceLine) or (Bicorpus.__BADToken() in destLine): return False
 
         self.__processSequence(sourceLine, lang = Lang.SOURCE)
         self.__processSequence(destLine, lang = Lang.DEST)
@@ -159,19 +157,20 @@ class Bicorpus:
        #Words in descending order of frequency
        words = sorted(wordCounts, key = wordCounts.get, reverse = True)
 
-       wordMap = one2one(unknown_x = Bicorpus.__UNKWord(), unknown_y = 0)
-       i = 1
-       while i < size + 1:
+       wordMap = one2one(unknown_x = Bicorpus.UNK(), unknown_y = size)
+
+       i = 0
+       while i < size:
            wordMap[ words[i] ] = i
            i += 1
 
-       Bicorpus.__addAnnotativeTokens(wordMap, i)
+       Bicorpus.__addAnnotativeTokens(wordMap, i + 1) #Index i = size is already taken by unknown_y, so increment i
        return wordMap
 
-    def __genIndexDicts(self, numWords, numSequences):
-        logFrequency = numSequences // 20 if numSequences > 20 else 1
+    def __genIndexDicts(self, numWords, maxSequences):
+        logFrequency = maxSequences // 20 if maxSequences > 20 else 1
 
-        for i in range(numSequences):
+        for i in range(maxSequences):
             self.__processBisequence(i)
             if (i + 1) % logFrequency == 0: print("{} sequences read.".format(i + 1), flush = True)
 
@@ -194,15 +193,18 @@ class Bicorpus:
     def getMaps(self):
         return self.sourceMap, self.destMap
 
+    #def writeCTF(self, path):
+        
+
     def writeMapping(self, path, lang):
         wordMap = self.sourceMap if lang == Lang.SOURCE else self.destMap
 
-	with open(path, "w") as dictFile:
+        with open(path, "w") as dictFile:
             dictFile.write( str(len(wordMap)) + "\n") #Vocabulary size
 
-            toWrite = "\n".join( [ word + " " + index for word, index in wordMap.items() ] )
+            toWrite = "\n".join( [ word + " " + str(index) for word, index in wordMap.items() ] )
             dictFile.write(toWrite)
 	
-	print("Wrote", path)
+        print("Wrote", path)
 
 
