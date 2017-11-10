@@ -42,7 +42,7 @@ class CTFFile:
     def __writeHalfRows(self, tokens, label, mapping, i):
         while i < len(tokens):
            token = tokens[i]
-           row = str(self.sequenceId) + ' |' + label + " " + str(mapping[token]) + ":1 #| " + token + "\n"
+           row = str(self.sequenceId) + ' |' + label + " " + str(mapping[token]) + ":1 #|" + token + "\n"
            self.out.write(row)
            i += 1
         return i
