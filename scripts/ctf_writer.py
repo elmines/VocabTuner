@@ -36,13 +36,13 @@ class CTFFile:
        self.sequenceId += 1
 
     def __writeRow(self, sourceToken, destToken):
-        row = str(self.sequenceId) + " |" + self.sourceLabel + " " + str(self.sourceMapping[sourceToken]) + ":1 #|" + sourceToken + " |" + self.destLabel + " " + str(self.destMapping[destToken]) + ":1 #|" + destToken + "\n"
+        row = str(self.sequenceId) + " |" + self.sourceLabel + " " + str(self.sourceMapping[sourceToken]) + ":1 |# " + sourceToken + " |" + self.destLabel + " " + str(self.destMapping[destToken]) + ":1 |# " + destToken + "\n"
         self.out.write(row)
 
     def __writeHalfRows(self, tokens, label, mapping, i):
         while i < len(tokens):
            token = tokens[i]
-           row = str(self.sequenceId) + ' |' + label + " " + str(mapping[token]) + ":1 #|" + token + "\n"
+           row = str(self.sequenceId) + ' |' + label + " " + str(mapping[token]) + ":1 |# " + token + "\n"
            self.out.write(row)
            i += 1
         return i

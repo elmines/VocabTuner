@@ -1,7 +1,6 @@
 from enum import Enum
 from collections import MutableMapping
 from copy import deepcopy
-import pydoc
 
 class Set(Enum):
     DOMAIN = 0
@@ -119,6 +118,9 @@ class one2one(MutableMapping):
     #####################File I/0##############################
 
     def write(self, path):
+        """
+        Writes the curent one2one object to a .dict file at an absolute path.
+        """
         with open(path, "w") as dictFile:
             dictFile.write( str(len(self.x2y)) + "\n")
             dictFile.write( str(self.x_type) + "\n" + str(self.y_type) + "\n" )
@@ -128,6 +130,9 @@ class one2one(MutableMapping):
 
     @staticmethod
     def load(path):
+        """
+        Loads a one2one object from a .dict file at an absolute path.
+        """
         with open(path, "r") as dictFile:
             dictFile.readline() #Consume number of entries
 

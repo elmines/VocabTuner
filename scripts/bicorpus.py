@@ -1,7 +1,9 @@
 from enum import Enum
 from collections import defaultdict
 import itertools
+import os
 
+#Custom modules
 from one2one import one2one
 from ctf_writer import CTFFile
 
@@ -119,6 +121,7 @@ class Bicorpus:
     def __cleanSequence(sequence):
         tokens = [Bicorpus.__cleanToken(token) for token in sequence.split(" ")]
         return " ".join(tokens)
+
 ##########################Private functions#################################
 
 
@@ -194,11 +197,17 @@ class Bicorpus:
         return self.sourceMap, self.destMap
 
     def writeCTF(self, path, sourceLang, destLang):
+        """
+	Writes sourceLines and destLines to a CTF file at an absolute path.
+	"""
         writer = CTFFile(path, sourceLang, destLang, self.sourceMap, self.destMap)
         for sourceLine, destLine in itertools.zip_longest(self.sourceLines, self.destLines, fillvalue = Bicorpus.__BADToken()):
            writer.writeSequence(sourceLine, destLine) 
         writer.close()
 
     def writeMapping(self, path, lang):
+        """
+	Writes one of the mappings (determined by lang) to an absolute path.
+	"""
         wordMap = self.sourceMap if lang == Lang.SOURCE else self.destMap
         wordMap.write(path)
