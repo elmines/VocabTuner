@@ -64,11 +64,6 @@ except TypeError as e:
     print(e.args[0])
 print()
 
-path = "output.dict"
-bidict.write(path)
-print("Wrote", path)
-cloned = one2one.load(path)
-print(cloned)
 
 
 print("Trying to use a different invalid type with the dictionary")
@@ -77,6 +72,24 @@ try:
 except TypeError as e:
     print(e.args[0])
 print()
+
+
+path = "output.dict"
+bidict.write(path)
+print("Wrote copy of dictionary to ", path)
+cloned = one2one.load(path)
+print("Dictionary loaded from file: ", cloned)
+print("Searching for two items not in domain or codomain.")
+print(bidict["elmines"])
+print(bidict[-42])
+print("Trying to use an invalid type with the dictionary")
+try:
+    bidict[ [3, 4, 1] ] = "ethan"
+except TypeError as e:
+    print(e.args[0])
+print()
+print()
+
 
 print("Making a new dictionary within nothing set for unknown_val, and searching for a nonexistent key.")
 dual_dict = one2one(str, int)
