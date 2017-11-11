@@ -111,6 +111,13 @@ class one2one(MutableMapping):
         return deepcopy(self.y2x)
 
 
+    def unknown_x(self):
+        return self.unknown_x
+
+    def unknown_y(self):
+        return self.unknown_y
+
+
     def __writeEntry(self, dictFile, key):
        dictFile.write( str(key) + "\n" + str(self.x2y[key]) + "\n")
 
