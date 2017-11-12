@@ -311,12 +311,23 @@ def train(train_reader, s2smodel, max_epochs, epoch_size):
         # log a summary of the stats for the epoch
         progress_printer.epoch_summary(with_metric=True)
 
-    timeSuffix = datetime.datetime.now().strftime("%b_%d_%H:%M")  # done: save the final model
+    timeSuffix = datetime.datetime.now().strftime("%b_%d_%H_%M")  # done: save the final model
     #model_path = "model_%d.cmf" % epoch
     model_path = timeSuffix + ".cmf"
     print("Saving final model to '%s'" % model_path)
     s2smodel.save(model_path)
     print("%d epochs complete." % max_epochs)
 
-model = create_model()
-train(trainingReader, model, max_epochs, epoch_size)
+def train_model():
+    model = create_model()
+    train(trainingReader, model, max_epochs, epoch_size)
+    debugging(model)
+
+def debugging(s2smodel):
+    model_greedy = create_model_greedy(s2smodel);
+
+
+train_model()
+
+
+
