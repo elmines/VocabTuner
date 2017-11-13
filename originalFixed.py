@@ -256,15 +256,31 @@ def train(train_reader, s2smodel, max_epochs, epoch_size):
     # This is not used for the actual training process.
     model_greedy = create_model_greedy(s2smodel)
 
+
+    mb_source = Minibatch_Source(train_reader, multithreaded_deserializer = True, randomize = True)
+
     # Instantiate the trainer object to drive the model training
     minibatch_size = 72
     lr = 0.001 if use_attention else 0.005
+
+
+
     learner = C.fsadagrad(model_train.parameters,
                           lr = C.learning_rate_schedule([lr]*2+[lr/2]*3+[lr/4], C.UnitType.sample, epoch_size),
                           momentum = C.momentum_as_time_constant_schedule(1100),
                           gradient_clipping_threshold_per_sample=2.3,
                           gradient_clipping_with_truncation=True)
-    trainer = C.Trainer(None, criterion, learner)
+
+
+    parallelLearner = C.distributed.data_parallel_distributed_learner(
+       learner = learner,
+       num_quantization_bits = 32,
+       distributed_after = 0
+    )
+
+
+
+    trainer = C.Trainer(None, criterion, parallelLearner)
 
     # Get minibatches of sequences to train with and perform model training
     total_samples = 0
@@ -278,6 +294,17 @@ def train(train_reader, s2smodel, max_epochs, epoch_size):
     # a hack to allow us to print sparse vectors
     #sparse_to_dense = create_sparse_to_dense(input_vocab_dim)
 
+    training_session(
+         trainer = trainer, mb_source = mb_source
+	 model_inputs_to_streams = {criterion.arguments[0]: mb_train[train_reader.streams.feature], criterion.arguments[1]: mb_train[train_reader.streams.labels},
+	 mb_size = minibatch_size,
+	 progress_frequency = epoch_size,
+	 checkpoing_config = None,
+	 test_config = None
+    ).train()
+
+
+    """
     for epoch in range(max_epochs):
         while total_samples < (epoch+1) * epoch_size:
             # get next minibatch of training data
@@ -289,7 +316,7 @@ def train(train_reader, s2smodel, max_epochs, epoch_size):
 
             progress_printer.update_with_trainer(trainer, with_metric=True) # log progress
 
-            """
+            
             # every N MBs evaluate on a test sequence to visually show how we're doing
             if mbs % eval_freq == 0:
                 mb_valid = valid_reader.next_minibatch(1)
@@ -303,13 +330,16 @@ def train(train_reader, s2smodel, max_epochs, epoch_size):
                 # visualizing attention window
                 if use_attention:
                     debug_attention(model_greedy, mb_valid[valid_reader.streams.features])
-            """
+            
 
             total_samples += mb_train[train_reader.streams.labels].num_samples
             mbs += 1
 
         # log a summary of the stats for the epoch
         progress_printer.epoch_summary(with_metric=True)
+    """
+
+
 
     timeSuffix = datetime.datetime.now().strftime("%b_%d_%H_%M")  # done: save the final model
     #model_path = "model_%d.cmf" % epoch
