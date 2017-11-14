@@ -19,7 +19,7 @@ def __dataPath(sourceLang, destLang, lang):
 
 def __dictPath(sourceLang, destLang, lang):
     extension = sourceLang if lang == bicorpus.Lang.SOURCE else destLang
-    return my_io.abs_path( os.path.join(__corpDir(), __docPrefix(sourceLang, destLang) + "." + extension + ".dict"), __file__ )
+    return my_io.abs_path( os.path.join(__corpDir(), __docPrefix(sourceLang, destLang) + extension + ".dict"), __file__ )
 
 
 def parseCorpora(sourceLang, destLang, maxWords = 30000, maxSequences = 50000):
@@ -65,13 +65,14 @@ def parseCorpora(sourceLang, destLang, maxWords = 30000, maxSequences = 50000):
     bp.writeCTF(ctfPath, sourceLang, destLang)
     print("Wrote", ctfPath)
 
-    return (bp, sourceMapPath, destMapPath, ctfPath)
+    #All the paths are stored in the Bicorpus object
+    return bp
 
 #Command-line interface
-if len(sys.argv) > 1:
-    langPair = sys.argv[1].split("-")
-    sourceLang, destLang = langPair[0], langPair[1]
-    parseCorpora(sourceLang, destLang)
+#if len(sys.argv) > 1:
+    #langPair = sys.argv[1].split("-")
+    #sourceLang, destLang = langPair[0], langPair[1]
+    #parseCorpora(sourceLang, destLang)
 
 
 def getPaths(sourceLang, destLang):

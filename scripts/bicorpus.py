@@ -1,6 +1,5 @@
 from enum import Enum
 from collections import defaultdict
-import itertools
 import os
 
 #Custom modules
@@ -44,6 +43,11 @@ class Bicorpus:
     sourceWordCounts = None
     destWordCounts = None
 
+    #Paths for files related to the Bicorpus
+    sourceMapPath = None
+    destMapPath = None
+    ctfPath = None
+
 
     def __init__(self, sourceLines, destLines, maxWords = None, maxSequences = None):
         if len(sourceLines) != len(destLines):
@@ -69,6 +73,10 @@ class Bicorpus:
         self.altMap = {}
         self.altMap[0] = (self.sourceMap, self.destMap)
 
+        self.sourceMapPath = None
+        self.destMapPath = None
+        self.ctfPath = None
+
 
 ##########################Static Functions##################################
 
@@ -87,9 +95,9 @@ class Bicorpus:
         return "<UNK>"
 
 
-    @staticmethod
-    def __UNKIndex():
-        return 0;
+    #@staticmethod
+    #def __UNKIndex():
+        #return 0;
 
     @staticmethod
     def __EMPTY():
@@ -175,7 +183,8 @@ class Bicorpus:
 
         for i in range(maxSequences):
             self.__processBisequence(i)
-            if (i + 1) % logFrequency == 0: print("{} sequences read.".format(i + 1), flush = True)
+            if (i + 1) % logFrequency == 0:
+                print("{} sequences read.".format(i + 1), flush = True)
 
         #Ensure both source and destination vocabularies have equal vocabulary sizes to get CNTK to work (why is that necessary?)
         minVocabSize = min(len(self.sourceWordCounts), len(self.destWordCounts))
@@ -190,20 +199,32 @@ class Bicorpus:
 ############################Public functions##############################
 
 
-    def training_lines(self):
+    def getTrainingLines(self):
         return self.sourceLines, self.destLines
 
     def getMaps(self):
         return self.sourceMap, self.destMap
+
+    def getMapPath(self, lang):
+        return self.sourceMapPath if lang == Lang.SOURCE else self.destMapPath
+
+    def getSourceMapPath(self):
+        return self.getMapPath(Lang.SOURCE)
+
+    def getDestMapPath(self):
+        return self.getMapPath(Lang.DEST)
+
+    def getCTFPath(self):
+        return self.ctfPath
 
     def writeCTF(self, path, sourceLang, destLang):
         """
 	Writes sourceLines and destLines to a CTF file at an absolute path.
 	"""
         writer = CTFFile(path, sourceLang, destLang, self.sourceMap, self.destMap)
-        for sourceLine, destLine in itertools.zip_longest(self.sourceLines, self.destLines, fillvalue = Bicorpus.__BADToken()):
-           writer.writeSequence(sourceLine, destLine) 
+        writer.writeSequences(self.sourceLines, self.destLines)
         writer.close()
+        self.ctfPath = path
 
     def writeMapping(self, path, lang):
         """
@@ -211,3 +232,5 @@ class Bicorpus:
 	"""
         wordMap = self.sourceMap if lang == Lang.SOURCE else self.destMap
         wordMap.write(path)
+        if lang == Lang.SOURCE: self.sourceMapPath = path
+        else:                   self.destMapPath   = path

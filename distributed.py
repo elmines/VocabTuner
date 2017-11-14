@@ -10,13 +10,12 @@ import datetime
 modulesPath = "scripts"
 modulesPath = os.path.abspath(os.path.join(modulesPath))
 if modulesPath not in sys.path: sys.path.append(modulesPath)
-from bicorpus import Bicorpus
 from one2one import one2one
 import europarse
+from bicorpus import Bicorpus
 
 def printCom(string):
-    print( str(C.distributed.Communicator.current_worker() )
-
+    print( str(C.distributed.Communicator.rank(), string) )
 
 """
 devices = C.device.all_devices()
@@ -40,8 +39,6 @@ embedding_dim = 200
 length_increase = 1.5
 
 #Data hyperparameters
-maxWords = 10000
-maxSequences = 10000
 training_ratio = 1 #3 / 4
 minibatch_size = 32
 max_epochs = 1
@@ -51,27 +48,12 @@ max_epochs = 1
 sourceLang = "es"
 destLang = "en"
 
-
-trainingCorp, sourceMapPath, destMapPath, ctfPath = europarse.parseCorpora(sourceLang, destLang, maxWords = maxWords, maxSequences = maxSequences)
-
-
-cleanedSource, cleanedDest = trainingCorp.training_lines()
-
-
-#Epoch Size
-numSequences = len(cleanedSource)
-epoch_size = int(numSequences * training_ratio)
-#print(epoch_size)
-
-sourceMapping = one2one.load(sourceMapPath)
-destMapping = one2one.load(destMapPath)
-sourceVocabSize = len(sourceMapping)
-destVocabSize = len(destMapping)
-#print(ctfPath)
-
-
-sourceVector = C.input_variable(sourceVocabSize)
-destVector = C.input_variable(destVocabSize)
+if len(sys.argv) > 1:
+    if len(sys.argv) == 2:
+        langs = sys.argv[1].split("-")
+        sourceLang, destLang = langs[0], langs[1]
+    else:
+        sourceLang, destlang = sys.argv[1], sys.argv[2]
 
 def create_reader(ctfPath, sourceLang, destLang, sourceVocabSize, destVocabSize):
     sourceStream = C.io.StreamDef(field = sourceLang, shape = sourceVocabSize, is_sparse = True)
@@ -79,43 +61,27 @@ def create_reader(ctfPath, sourceLang, destLang, sourceVocabSize, destVocabSize)
 
     deserializer = C.io.CTFDeserializer(ctfPath, C.io.StreamDefs(labels = destStream, features = sourceStream))
     reader = C.io.MinibatchSource(deserializer, randomize = 0, max_sweeps = 1)
-
-    #mb = reader.next_minibatch(4)
-    #print( mb )
-    
-    #featureData = mb[reader.streams.features]
-    #labelData = mb[reader.streams.labels]
-    
-    #print( featureData )
-    #print( labelData )
-
-    #featureSequences = featureData.as_sequences(sourceVector) 
-    #labelSequences = labelData.as_sequences(destVector)
-
-    #print( featureSequences[0] )
-    #print( labelSequences[0] ) 
-
     return reader
 
+sourceMapPath, destMapPath, ctfPath = europarse.getPaths(sourceLang, destLang)
+
+sourceMapping = one2one.load(sourceMapPath)
+destMapping = one2one.load(destMapPath)
+sourceVocabSize = len(sourceMapping)
+destVocabSize = len(destMapping)
 trainingReader = create_reader(ctfPath, sourceLang, destLang, sourceVocabSize, destVocabSize)
 
 
-sourceMapping, destMapping = trainingCorp.getMaps()
 
+#########################MODEL VARIABLES##########################
 sourceAxis = C.Axis("sourceAxis")
 destAxis = C.Axis("destAxis")
 sourceSequence = C.layers.SequenceOver[sourceAxis]
 destSequence = C.layers.SequenceOver[destAxis]
-
-
 #Sequence start and end marks (only for the decoder?)
 seqStartIndex = destMapping[Bicorpus.START()]
 seqEndIndex = destMapping[Bicorpus.END()]
 seqStart = C.Constant( np.asarray( [i == seqStartIndex for i in range(destVocabSize) ] , dtype = my_dtype) )
-
-#print(seqStartIndex)
-#print(seqEndIndex)
-#print(seqStart)
 
 
 # create the s2s model
@@ -284,7 +250,7 @@ def train(train_reader, s2smodel, max_epochs, epoch_size):
        distributed_after = 0
     )
 
-    printCom("Instantiated parallel learner.", flush = True)
+    printCom("Instantiated parallel learner.")
 
     trainer = C.Trainer(None, criterion, parallelLearner)
 
@@ -300,7 +266,7 @@ def train(train_reader, s2smodel, max_epochs, epoch_size):
     # a hack to allow us to print sparse vectors
     #sparse_to_dense = create_sparse_to_dense(input_vocab_dim)
 
-    print("Instantiating training session.", flush = True)
+    printCom("Instantiating training session.")
 
     C.training_session(
          trainer = trainer, mb_source = train_reader,
@@ -312,64 +278,65 @@ def train(train_reader, s2smodel, max_epochs, epoch_size):
 	 test_config = None
     ).train()
 
-    C.distributed.Communicator.finalize()
-    print("Finalized communicator.", flush = True)
 
 
-    """
-    for epoch in range(max_epochs):
-        while total_samples < (epoch+1) * epoch_size:
-            # get next minibatch of training data
-            mb_train = train_reader.next_minibatch(minibatch_size)
+    #for epoch in range(max_epochs):
+        #while total_samples < (epoch+1) * epoch_size:
+            ## get next minibatch of training data
+            #mb_train = train_reader.next_minibatch(minibatch_size)
 
-            # do the training
-            trainer.train_minibatch({criterion.arguments[0]: mb_train[train_reader.streams.features],
-                                     criterion.arguments[1]: mb_train[train_reader.streams.labels]})
-
-            progress_printer.update_with_trainer(trainer, with_metric=True) # log progress
-
-            
-            # every N MBs evaluate on a test sequence to visually show how we're doing
-            if mbs % eval_freq == 0:
-                mb_valid = valid_reader.next_minibatch(1)
-
-                # run an eval on the decoder output model (i.e. don't use the groundtruth)
-                e = model_greedy(mb_valid[valid_reader.streams.features])
-                print(format_sequences(sparse_to_dense(mb_valid[valid_reader.streams.features]), i2w))
-                print("->")
-                print(format_sequences(e, i2w))
-
-                # visualizing attention window
-                if use_attention:
-                    debug_attention(model_greedy, mb_valid[valid_reader.streams.features])
-            
-
-            total_samples += mb_train[train_reader.streams.labels].num_samples
-            mbs += 1
-
-        # log a summary of the stats for the epoch
-        progress_printer.epoch_summary(with_metric=True)
-    """
+            ## do the training
+            #trainer.train_minibatch({criterion.arguments[0]: mb_train[train_reader.streams.features],
+                                     #criterion.arguments[1]: mb_train[train_reader.streams.labels]})
+#
+            #progress_printer.update_with_trainer(trainer, with_metric=True) # log progress
+#
+            #
+            ## every N MBs evaluate on a test sequence to visually show how we're doing
+            #if mbs % eval_freq == 0:
+                #mb_valid = valid_reader.next_minibatch(1)
+#
+                ## run an eval on the decoder output model (i.e. don't use the groundtruth)
+                #e = model_greedy(mb_valid[valid_reader.streams.features])
+                #print(format_sequences(sparse_to_dense(mb_valid[valid_reader.streams.features]), i2w))
+                #print("->")
+                #print(format_sequences(e, i2w))
+#
+                ## visualizing attention window
+                #if use_attention:
+                    #debug_attention(model_greedy, mb_valid[valid_reader.streams.features])
+            #
+#
+            #total_samples += mb_train[train_reader.streams.labels].num_samples
+            #mbs += 1
+#
+        ## log a summary of the stats for the epoch
+        #progress_printer.epoch_summary(with_metric=True)
 
 
 
     timeSuffix = datetime.datetime.now().strftime("%b_%d_%H_%M")  # done: save the final model
     #model_path = "model_%d.cmf" % epoch
     model_path = timeSuffix + ".cmf"
-    print("Saving final model to '%s'" % model_path)
+    printCom("Saving final model to '%s'" % model_path)
     s2smodel.save(model_path)
-    print("%d epochs complete." % max_epochs)
+    printCom("%d epochs complete." % max_epochs)
 
-def train_model():
+def train_model(sourceMapping, destMapping, ctfPath):
+    with open(ctfPath, "r") as temp:
+       numSequences = temp.readline().split(" ")[1] 
+       print(numSequences)
+
     model = create_model()
+    epoch_size = numSequences * training_ratio
     train(trainingReader, model, max_epochs, epoch_size)
-    debugging(model)
+    #debugging(model)
 
 def debugging(s2smodel):
     model_greedy = create_model_greedy(s2smodel);
 
 
-train_model()
-
-
+train_model(sourceMapping, destMapping, ctfPath)
+printCom("About to finalize communicator.")
+C.distributed.Communicator.finalize()
 

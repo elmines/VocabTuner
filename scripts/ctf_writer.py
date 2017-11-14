@@ -1,4 +1,5 @@
 import one2one
+import itertools
 
 class CTFFile:
     """
@@ -20,8 +21,19 @@ class CTFFile:
         self.sourceMapping = sourceMapping
         self.destMapping = destMapping
         
+    def writeSequences(self, sourceLines, destLines):
+        if len(sourceLines) != len(destLines):
+            raise ValueError("Unequal number of source and destination lines.")
+        if self.sequenceId > 0:
+            raise RuntimeError("CTF File already written.")
 
-    def writeSequence(self, sourceLine, destLine):
+        #Write number sequences
+        self.out.write("|# {0}\n".format(len(sourceLines)))
+
+        for sourceLine, destLine in itertools.zip_longest(sourceLines, destLines, fillvalue = "ERROR"):
+            self.__writeSequence(sourceLine, destLine)
+
+    def __writeSequence(self, sourceLine, destLine):
        sourceTokens = sourceLine.split() if type(sourceLine) == str else sourceLine
        destTokens = destLine.split() if type(destLine) == str else destLine
 
