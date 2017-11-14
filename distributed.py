@@ -14,13 +14,18 @@ from bicorpus import Bicorpus
 from one2one import one2one
 import europarse
 
+def printCom(string):
+    print( str(C.distributed.Communicator.current_worker() )
+
+
+"""
 devices = C.device.all_devices()
 for device in devices:
     if device.type(): #Means a GPU is available
         C.device.try_set_default_device(C.device.gpu(0))
         print("Found GPU and set as default device.")
         print(device.get_gpu_properties(device))
-
+"""
 
 C.cntk_py.set_fixed_random_seed(0)
 
@@ -56,13 +61,13 @@ cleanedSource, cleanedDest = trainingCorp.training_lines()
 #Epoch Size
 numSequences = len(cleanedSource)
 epoch_size = int(numSequences * training_ratio)
-print(epoch_size)
+#print(epoch_size)
 
 sourceMapping = one2one.load(sourceMapPath)
 destMapping = one2one.load(destMapPath)
 sourceVocabSize = len(sourceMapping)
 destVocabSize = len(destMapping)
-print(ctfPath)
+#print(ctfPath)
 
 
 sourceVector = C.input_variable(sourceVocabSize)
@@ -73,7 +78,7 @@ def create_reader(ctfPath, sourceLang, destLang, sourceVocabSize, destVocabSize)
     destStream = C.io.StreamDef(field = destLang, shape = destVocabSize, is_sparse = True)
 
     deserializer = C.io.CTFDeserializer(ctfPath, C.io.StreamDefs(labels = destStream, features = sourceStream))
-    #reader = C.io.MinibatchSource(deserializer, randomize = 0, max_sweeps = 1)
+    reader = C.io.MinibatchSource(deserializer, randomize = 0, max_sweeps = 1)
 
     #mb = reader.next_minibatch(4)
     #print( mb )
@@ -90,7 +95,7 @@ def create_reader(ctfPath, sourceLang, destLang, sourceVocabSize, destVocabSize)
     #print( featureSequences[0] )
     #print( labelSequences[0] ) 
 
-    return deserializer
+    return reader
 
 trainingReader = create_reader(ctfPath, sourceLang, destLang, sourceVocabSize, destVocabSize)
 
@@ -108,9 +113,9 @@ seqStartIndex = destMapping[Bicorpus.START()]
 seqEndIndex = destMapping[Bicorpus.END()]
 seqStart = C.Constant( np.asarray( [i == seqStartIndex for i in range(destVocabSize) ] , dtype = my_dtype) )
 
-print(seqStartIndex)
-print(seqEndIndex)
-print(seqStart)
+#print(seqStartIndex)
+#print(seqEndIndex)
+#print(seqStart)
 
 
 # create the s2s model
@@ -257,13 +262,11 @@ def train(train_reader, s2smodel, max_epochs, epoch_size):
     model_greedy = create_model_greedy(s2smodel)
 
 
-    mb_source = C.io.MinibatchSource(train_reader, randomize = True) # multithreaded_deserializer = True)
+    #mb_source = C.io.MinibatchSource(train_reader, randomize = True) # multithreaded_deserializer = True)
 
     # Instantiate the trainer object to drive the model training
     minibatch_size = 72
     lr = 0.001 if use_attention else 0.005
-
-
 
     learner = C.fsadagrad(model_train.parameters,
                           lr = C.learning_rate_schedule([lr]*2+[lr/2]*3+[lr/4], C.UnitType.sample, epoch_size),
@@ -272,13 +275,16 @@ def train(train_reader, s2smodel, max_epochs, epoch_size):
                           gradient_clipping_with_truncation=True)
 
 
+    printCom("Instantiated learner.")
+
+
     parallelLearner = C.distributed.data_parallel_distributed_learner(
        learner = learner,
        num_quantization_bits = 32,
        distributed_after = 0
     )
 
-
+    printCom("Instantiated parallel learner.", flush = True)
 
     trainer = C.Trainer(None, criterion, parallelLearner)
 
@@ -297,16 +303,17 @@ def train(train_reader, s2smodel, max_epochs, epoch_size):
     print("Instantiating training session.", flush = True)
 
     C.training_session(
-         trainer = trainer, mb_source = mb_source,
+         trainer = trainer, mb_source = train_reader,
 	 model_inputs_to_streams = {criterion.arguments[0]: train_reader.streams.features, criterion.arguments[1]: train_reader.streams.labels},
 	 mb_size = minibatch_size,
 	 progress_frequency = minibatch_size,
-	 checkpoing_config = None,
+         cv_config = None,
+	 checkpoint_config = None,
 	 test_config = None
     ).train()
 
     C.distributed.Communicator.finalize()
-    print("Finalized communicator.")
+    print("Finalized communicator.", flush = True)
 
 
     """
