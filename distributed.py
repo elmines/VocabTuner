@@ -13,9 +13,10 @@ if modulesPath not in sys.path: sys.path.append(modulesPath)
 from one2one import one2one
 import europarse
 from bicorpus import Bicorpus
+from corp_paths import CorpPaths
 
 def printCom(string):
-    print( str(C.distributed.Communicator.rank(), string) )
+    print( str(C.distributed.Communicator.rank()), "> ",  string, sep = "" )
 
 """
 devices = C.device.all_devices()
@@ -63,10 +64,14 @@ def create_reader(ctfPath, sourceLang, destLang, sourceVocabSize, destVocabSize)
     reader = C.io.MinibatchSource(deserializer, randomize = 0, max_sweeps = 1)
     return reader
 
-sourceMapPath, destMapPath, ctfPath = europarse.getPaths(sourceLang, destLang)
+paths = europarse.getPaths(sourceLang, destLang)
 
-sourceMapping = one2one.load(sourceMapPath)
-destMapping = one2one.load(destMapPath)
+sourceMapPath = paths.getSourceMapPath()
+destMapPath = paths.getDestMapPath()
+ctfPath = paths.getCtfPath()
+
+sourceMapping = one2one.load(paths.getSourceMapPath())
+destMapping = one2one.load(paths.getDestMapPath())
 sourceVocabSize = len(sourceMapping)
 destVocabSize = len(destMapping)
 trainingReader = create_reader(ctfPath, sourceLang, destLang, sourceVocabSize, destVocabSize)
@@ -231,15 +236,38 @@ def train(train_reader, s2smodel, max_epochs, epoch_size):
     #mb_source = C.io.MinibatchSource(train_reader, randomize = True) # multithreaded_deserializer = True)
 
     # Instantiate the trainer object to drive the model training
-    minibatch_size = 72
+    #minibatch_size = 72
     lr = 0.001 if use_attention else 0.005
 
+    #learning_rate_schedule fucntion deprecated
+    #learner = C.fsadagrad(model_train.parameters,
+                          #lr = C.learning_rate_schedule([lr]*2+[lr/2]*3+[lr/4], C.UnitType.sample, epoch_size),
+                          #momentum = C.momentum_as_time_constant_schedule(1100),
+                          #gradient_clipping_threshold_per_sample=2.3,
+                          #gradient_clipping_with_truncation=True)
+
+    #FIXME: Change minibatch_size to 1?
+    lr_list = [lr] * 2 + [lr/2] * 3 + [lr/4]
+
+    #lr = 0.001
+    #minibatch_size = 72
+    #epoch_size = 44185
+
+    printCom(lr)
+    printCom(lr_list)
+    printCom(minibatch_size)
+    printCom(epoch_size)
+    lr_schedule = C.learning_parameter_schedule(lr_list, minibatch_size = minibatch_size, epoch_size = epoch_size)
+
+    print("Instantiated lr_schedule")
+
+    #lr_schedule = C.learning_parameter_schedule(lr_list, minibatch_size = minibatch_size, epoch_size = epoch_size)
+
     learner = C.fsadagrad(model_train.parameters,
-                          lr = C.learning_rate_schedule([lr]*2+[lr/2]*3+[lr/4], C.UnitType.sample, epoch_size),
+                          lr = lr_schedule,
                           momentum = C.momentum_as_time_constant_schedule(1100),
                           gradient_clipping_threshold_per_sample=2.3,
                           gradient_clipping_with_truncation=True)
-
 
     printCom("Instantiated learner.")
 
@@ -322,21 +350,20 @@ def train(train_reader, s2smodel, max_epochs, epoch_size):
     s2smodel.save(model_path)
     printCom("%d epochs complete." % max_epochs)
 
-def train_model(sourceMapping, destMapping, ctfPath):
-    with open(ctfPath, "r") as temp:
-       numSequences = temp.readline().split(" ")[1] 
-       print(numSequences)
+def train_model(sourceMapping, destMapping, paths):
+    with open(paths.getPropsPath(), "r") as props:
+       numSequences = int( props.readline() )
+       printCom(numSequences)
 
     model = create_model()
     epoch_size = numSequences * training_ratio
     train(trainingReader, model, max_epochs, epoch_size)
-    #debugging(model)
 
 def debugging(s2smodel):
     model_greedy = create_model_greedy(s2smodel);
 
 
-train_model(sourceMapping, destMapping, ctfPath)
+train_model(sourceMapping, destMapping, paths)
 printCom("About to finalize communicator.")
 C.distributed.Communicator.finalize()
 

@@ -28,7 +28,7 @@ class CTFFile:
             raise RuntimeError("CTF File already written.")
 
         #Write number sequences
-        self.out.write("|# {0}\n".format(len(sourceLines)))
+        #self.out.write("|# {0}\n".format(len(sourceLines)))
 
         for sourceLine, destLine in itertools.zip_longest(sourceLines, destLines, fillvalue = "ERROR"):
             self.__writeSequence(sourceLine, destLine)

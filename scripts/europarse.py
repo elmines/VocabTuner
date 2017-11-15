@@ -1,6 +1,7 @@
 import os
 import sys
 import bicorpus
+import corp_paths
 
 import my_io
 
@@ -9,6 +10,9 @@ def __corpDir():
 
 def __docPrefix(sourceLang, destLang):
     return "europarl-v7." + sourceLang + "-" + destLang + "."
+
+def __propsPath(sourceLang, destLang):
+    return my_io.abs_path( os.path.join(__corpDir(), __docPrefix(sourceLang, destLang) + "props"), __file__)
 
 def __ctfPath(sourceLang, destLang):
     return my_io.abs_path( os.path.join(__corpDir(), __docPrefix(sourceLang, destLang) + "ctf"), __file__ )
@@ -65,8 +69,16 @@ def parseCorpora(sourceLang, destLang, maxWords = 30000, maxSequences = 50000):
     bp.writeCTF(ctfPath, sourceLang, destLang)
     print("Wrote", ctfPath)
 
-    #All the paths are stored in the Bicorpus object
-    return bp
+    propsPath = __propsPath(sourceLang, destLang)
+    with open(propsPath, "w") as propsFile:
+        propsFile.write( str( len(bp.getTrainingLines()[0]) ) + "\n")
+    print("Wrote", propsPath)
+
+    #All the paths, exce are stored in the Bicorpus object
+    return corp_paths.CorpPaths(sourceMapPath = sourceMapPath,
+                                  destMapPath = destMapPath,
+                                      ctfPath = ctfPath,
+                                    propsPath = propsPath)
 
 #Command-line interface
 #if len(sys.argv) > 1:
@@ -76,4 +88,7 @@ def parseCorpora(sourceLang, destLang, maxWords = 30000, maxSequences = 50000):
 
 
 def getPaths(sourceLang, destLang):
-    return __dictPath(sourceLang, destLang, bicorpus.Lang.SOURCE), __dictPath(sourceLang, destLang, bicorpus.Lang.DEST), __ctfPath(sourceLang, destLang)
+    return corp_paths.CorpPaths(sourceMapPath = __dictPath(sourceLang, destLang, bicorpus.Lang.SOURCE),
+                                  destMapPath = __dictPath(sourceLang, destLang, bicorpus.Lang.DEST),
+                                      ctfPath = __ctfPath(sourceLang, destLang),
+                                    propsPath = __propsPath(sourceLang, destLang) )
