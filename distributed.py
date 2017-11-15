@@ -18,14 +18,17 @@ from corp_paths import CorpPaths
 def printCom(string):
     print( str(C.distributed.Communicator.rank()), "> ",  string, sep = "" )
 
-"""
 devices = C.device.all_devices()
+printCom(devices)
+"""
 for device in devices:
     if device.type(): #Means a GPU is available
         C.device.try_set_default_device(C.device.gpu(0))
         print("Found GPU and set as default device.")
         print(device.get_gpu_properties(device))
 """
+
+C.device.try_set_default_device(C.device.gpu( C.distributed.Communicator.rank() ) )
 
 C.cntk_py.set_fixed_random_seed(0)
 
@@ -75,7 +78,6 @@ destMapping = one2one.load(paths.getDestMapPath())
 sourceVocabSize = len(sourceMapping)
 destVocabSize = len(destMapping)
 trainingReader = create_reader(ctfPath, sourceLang, destLang, sourceVocabSize, destVocabSize)
-
 
 
 #########################MODEL VARIABLES##########################
