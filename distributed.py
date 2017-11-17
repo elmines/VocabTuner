@@ -15,6 +15,9 @@ import europarse
 from bicorpus import Bicorpus
 from corp_paths import CorpPaths
 
+def printOnce(string):
+    if C.distributed.Communicator.rank() == 0: print(string)
+
 def printCom(string):
     print( str(C.distributed.Communicator.rank()), "> ",  string, sep = "" )
 
@@ -274,6 +277,7 @@ def train(train_reader, s2smodel, max_epochs, epoch_size):
 
     printCom("Instantiating training session.")
 
+    progress_freq = 128
     C.training_session(
          trainer = trainer, mb_source = train_reader,
 	 model_inputs_to_streams = {criterion.arguments[0]: train_reader.streams.features, criterion.arguments[1]: train_reader.streams.labels},
@@ -294,10 +298,13 @@ def train(train_reader, s2smodel, max_epochs, epoch_size):
 def train_model(sourceMapping, destMapping, paths):
     with open(paths.getPropsPath(), "r") as props:
        numSequences = int( props.readline() )
-       printCom(numSequences)
+    epoch_size = numSequences * training_ratio
+
+    printOnce("Training on  " + str(epoch_size) + " sequences." )
+    printOnce("Source Vocab Size: " + str(sourceVocabSize))
+    printOnce("  Dest Vocab Size: " + str(destVocabSize))
 
     model = create_model()
-    epoch_size = numSequences * training_ratio
     train(trainingReader, model, max_epochs, epoch_size)
 
 def debugging(s2smodel):
