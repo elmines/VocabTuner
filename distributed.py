@@ -19,16 +19,15 @@ def printCom(string):
     print( str(C.distributed.Communicator.rank()), "> ",  string, sep = "" )
 
 devices = C.device.all_devices()
-printCom(devices)
-"""
+
+gpuAvailable = False
 for device in devices:
     if device.type(): #Means a GPU is available
-        C.device.try_set_default_device(C.device.gpu(0))
-        print("Found GPU and set as default device.")
-        print(device.get_gpu_properties(device))
-"""
+        gpuAvailable = True
+        break
 
-C.device.try_set_default_device(C.device.gpu( C.distributed.Communicator.rank() ) )
+if gpuAvailable:
+    C.device.try_set_default_device(C.device.gpu( C.distributed.Communicator.rank() ) )
 
 C.cntk_py.set_fixed_random_seed(0)
 
@@ -44,7 +43,7 @@ length_increase = 1.5
 
 #Data hyperparameters
 training_ratio = 1 #3 / 4
-minibatch_size = 32
+minibatch_size = 1
 max_epochs = 1
 
 
@@ -241,29 +240,8 @@ def train(train_reader, s2smodel, max_epochs, epoch_size):
     #minibatch_size = 72
     lr = 0.001 if use_attention else 0.005
 
-    #learning_rate_schedule fucntion deprecated
-    #learner = C.fsadagrad(model_train.parameters,
-                          #lr = C.learning_rate_schedule([lr]*2+[lr/2]*3+[lr/4], C.UnitType.sample, epoch_size),
-                          #momentum = C.momentum_as_time_constant_schedule(1100),
-                          #gradient_clipping_threshold_per_sample=2.3,
-                          #gradient_clipping_with_truncation=True)
-
-    #FIXME: Change minibatch_size to 1?
     lr_list = [lr] * 2 + [lr/2] * 3 + [lr/4]
-
-    #lr = 0.001
-    #minibatch_size = 72
-    #epoch_size = 44185
-
-    printCom(lr)
-    printCom(lr_list)
-    printCom(minibatch_size)
-    printCom(epoch_size)
     lr_schedule = C.learning_parameter_schedule(lr_list, minibatch_size = minibatch_size, epoch_size = epoch_size)
-
-    print("Instantiated lr_schedule")
-
-    #lr_schedule = C.learning_parameter_schedule(lr_list, minibatch_size = minibatch_size, epoch_size = epoch_size)
 
     learner = C.fsadagrad(model_train.parameters,
                           lr = lr_schedule,
@@ -271,7 +249,6 @@ def train(train_reader, s2smodel, max_epochs, epoch_size):
                           gradient_clipping_threshold_per_sample=2.3,
                           gradient_clipping_with_truncation=True)
 
-    printCom("Instantiated learner.")
 
 
     parallelLearner = C.distributed.data_parallel_distributed_learner(
@@ -280,7 +257,6 @@ def train(train_reader, s2smodel, max_epochs, epoch_size):
        distributed_after = 0
     )
 
-    printCom("Instantiated parallel learner.")
 
     trainer = C.Trainer(None, criterion, parallelLearner)
 
@@ -309,44 +285,7 @@ def train(train_reader, s2smodel, max_epochs, epoch_size):
     ).train()
 
 
-
-    #for epoch in range(max_epochs):
-        #while total_samples < (epoch+1) * epoch_size:
-            ## get next minibatch of training data
-            #mb_train = train_reader.next_minibatch(minibatch_size)
-
-            ## do the training
-            #trainer.train_minibatch({criterion.arguments[0]: mb_train[train_reader.streams.features],
-                                     #criterion.arguments[1]: mb_train[train_reader.streams.labels]})
-#
-            #progress_printer.update_with_trainer(trainer, with_metric=True) # log progress
-#
-            #
-            ## every N MBs evaluate on a test sequence to visually show how we're doing
-            #if mbs % eval_freq == 0:
-                #mb_valid = valid_reader.next_minibatch(1)
-#
-                ## run an eval on the decoder output model (i.e. don't use the groundtruth)
-                #e = model_greedy(mb_valid[valid_reader.streams.features])
-                #print(format_sequences(sparse_to_dense(mb_valid[valid_reader.streams.features]), i2w))
-                #print("->")
-                #print(format_sequences(e, i2w))
-#
-                ## visualizing attention window
-                #if use_attention:
-                    #debug_attention(model_greedy, mb_valid[valid_reader.streams.features])
-            #
-#
-            #total_samples += mb_train[train_reader.streams.labels].num_samples
-            #mbs += 1
-#
-        ## log a summary of the stats for the epoch
-        #progress_printer.epoch_summary(with_metric=True)
-
-
-
     timeSuffix = datetime.datetime.now().strftime("%b_%d_%H_%M")  # done: save the final model
-    #model_path = "model_%d.cmf" % epoch
     model_path = timeSuffix + ".cmf"
     printCom("Saving final model to '%s'" % model_path)
     s2smodel.save(model_path)

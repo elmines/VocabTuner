@@ -13,11 +13,15 @@ import europarse
 my_dtype = np.float32
 length_increase = 1.5
 
-constPath = "Nov_11_19_38.cmf"
+constPath = "Nov_15_12_41.cmf"
 sourceLang = "es"
 destLang = "en"
 
-sourceMapPath, destMapPath, ctfPath = europarse.getPaths(sourceLang, destLang)
+paths = europarse.getPaths(sourceLang, destLang)
+#sourceMapPath, destMapPath, ctfPath = europarse.getPaths(sourceLang, destLang)
+sourceMapPath = paths.getSourceMapPath()
+destMapPath = paths.getDestMapPath()
+ctfPath = paths.getCtfPath()
 
 sourceMapping = one2one.load(sourceMapPath)
 destMapping = one2one.load(destMapPath)
@@ -55,18 +59,31 @@ def create_model_greedy(s2smodel):
 s2smodel = C.Function.load(modelPath)
 greedy_model = create_model_greedy(s2smodel)
 
+def printPhrases(sourcePhrase, destPhrase):
+    for i in range(1, len(sourcePhrase) - 1):
+        print(sourcePhrase[i], end = " ")
+
+    print(" -->", destPhrase)
+
+    #for i in range(len(destPhrase) - 1):
+        #print(" ", destPhrase[i], sep = "", end = "")
+
+    print()
+
 def debugging(greedy_model):
-    sourcePhrase = ["<s>", "yo", "soy", "presidenta", "</s>"]
+    sourcePhrases = [ ["<s>", "yo", "soy", "presidenta", "</s>"], ["<s>", "ella", "ama", "europa", "</s>"], ["<s>", "nosotros", "necesitamos", "ayuda", "</s>"] ] 
 
-    indices = [sourceMapping[word] for word in sourcePhrase]
-    query = C.Value.one_hot(indices, sourceVocabSize)
 
-    pred = greedy_model(query)
-    pred = np.squeeze(pred[0])
+    for sourcePhrase in sourcePhrases:
+        indices = [sourceMapping[word] for word in sourcePhrase]
+        query = C.Value.one_hot(indices, sourceVocabSize)
 
-    words = [ destMapping[np.argmax(one_hot)] for one_hot in pred ]
-    phrase = " ".join(words)
-    print(phrase)
+        pred = greedy_model(query)
+        pred = np.squeeze(pred[0])
+
+        words = [ destMapping[np.argmax(one_hot)] for one_hot in pred ]
+        phrase = " ".join(words)
+        printPhrases(sourcePhrase, phrase)
 
 
 debugging(greedy_model)
