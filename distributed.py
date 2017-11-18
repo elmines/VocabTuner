@@ -173,22 +173,6 @@ def create_model_train(s2smodel):
 
 
 #######################Testing wrapper for model##############################
-def create_model_greedy(s2smodel):
-    # model used in (greedy) decoding (history is decoder's own output)
-    @C.Function
-    @C.layers.Signature(sourceSequence[C.layers.Tensor[sourceVocabSize]])
-    def model_greedy(input): # (input*) --> (word_sequence*)
-
-        # Decoding is an unfold() operation starting from sentence_start.
-        # We must transform s2smodel (history*, input* -> word_logp*) into a generator (history* -> output*)
-        # which holds 'input' in its closure.
-        unfold = C.layers.UnfoldFrom(lambda history: s2smodel(history, input) >> C.hardmax,
-                            # stop once sentence_end_index was max-scoring output
-                            until_predicate=lambda w: w[...,seqEndIndex],
-                            length_increase=length_increase)
-
-        return unfold(initial_state=seqStart, dynamic_axes_like=input)
-    return model_greedy
 
 
 def create_criterion_function(model):
@@ -232,17 +216,7 @@ def train(train_reader, s2smodel, max_epochs, epoch_size):
     model_train = create_model_train(s2smodel)
     criterion = create_criterion_function(model_train)
 
-    # also wire in a greedy decoder so that we can properly log progress on a validation example
-    # This is not used for the actual training process.
-    model_greedy = create_model_greedy(s2smodel)
-
-
-    #mb_source = C.io.MinibatchSource(train_reader, randomize = True) # multithreaded_deserializer = True)
-
-    # Instantiate the trainer object to drive the model training
-    #minibatch_size = 72
     lr = 0.001 if use_attention else 0.005
-
     lr_list = [lr] * 2 + [lr/2] * 3 + [lr/4]
     lr_schedule = C.learning_parameter_schedule(lr_list, minibatch_size = minibatch_size, epoch_size = epoch_size)
 
@@ -263,13 +237,10 @@ def train(train_reader, s2smodel, max_epochs, epoch_size):
 
     trainer = C.Trainer(None, criterion, parallelLearner)
 
-    # Get minibatches of sequences to train with and perform model training
-    total_samples = 0
-    mbs = 0
     eval_freq = 100
 
     # print out some useful training information
-    #C.logging.log_number_of_parameters(model_train) ; print()
+    C.logging.log_number_of_parameters(model_train) ; print()
     #progress_printer = C.logging.ProgressPrinter(freq=30, tag='Training')
 
     # a hack to allow us to print sparse vectors
@@ -306,9 +277,6 @@ def train_model(sourceMapping, destMapping, paths):
 
     model = create_model()
     train(trainingReader, model, max_epochs, epoch_size)
-
-def debugging(s2smodel):
-    model_greedy = create_model_greedy(s2smodel);
 
 
 train_model(sourceMapping, destMapping, paths)
