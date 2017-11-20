@@ -29,8 +29,8 @@ class Bicorpus:
 
 
     ########################PROPS VARIABLES##########################
-    sourceTokenCount = 0
-    destTokenCount = 0
+    sourceTokensCount = 0
+    destTokensCount = 0
 
     
 
@@ -150,8 +150,8 @@ class Bicorpus:
 
 	#Add annotative tokens after counting word tokens
         tokenCount += 2 #For <s> and </s>
-        if lang == Lang.SOURCE: sourceTokensCount += tokenCount
-        else:                     destTokensCount += tokenCount
+        if lang == Lang.SOURCE: self.sourceTokensCount += tokenCount
+        else:                     self.destTokensCount += tokenCount
 
         lines.append( " ".join([Bicorpus.START(), line, Bicorpus.END()]) )
 
@@ -249,7 +249,7 @@ class Bicorpus:
         Writes various propertiets associated with the text (# sequences, #tokens, etc.)
         """
         with open(path, "w") as propsFile:
-            propsFile.write( str( len(self.sourceLines) + "\n")
-            num_tokens = str( max(sourceTokensCount, destTokensCount) )
+            propsFile.write( str( len(self.sourceLines) ) + "\n")
+            num_tokens = str( max(self.sourceTokensCount, self.destTokensCount) )
             propsFile.write( num_tokens + "\n" ) 
 
