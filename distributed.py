@@ -30,7 +30,9 @@ for device in devices:
         break
 
 if gpuAvailable:
-    C.device.try_set_default_device(C.device.gpu( C.distributed.Communicator.rank() ) )
+    threadGPU = C.device.gpu( C.distributed.Communicator.rank() )
+    print( threadGPU.get_gpu_properties(threadGPU) )
+    C.device.try_set_default_device( threadGPU )
 
 C.cntk_py.set_fixed_random_seed(0)
 
@@ -46,7 +48,7 @@ length_increase = 1.5
 
 #Data hyperparameters
 training_ratio = 1 #3 / 4
-minibatch_size = 1
+minibatch_size = 64
 max_epochs = 1
 
 
