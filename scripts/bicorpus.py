@@ -28,6 +28,9 @@ class Bicorpus:
     
 
 
+    ########################PROPS VARIABLES##########################
+    sourceTokenCount = 0
+    destTokenCount = 0
 
     
 
@@ -140,10 +143,16 @@ class Bicorpus:
     def __processSequence(self, line, lang):
         lines = self.sourceLines if lang == Lang.SOURCE else self.destLines
 
+        tokenCount = 0
         for token in line.split():
             self.__processToken(token, lang)
+            tokenCount += 1
 
 	#Add annotative tokens after counting word tokens
+        tokenCount += 2 #For <s> and </s>
+        if lang == Lang.SOURCE: sourceTokensCount += tokenCount
+        else:                     destTokensCount += tokenCount
+
         lines.append( " ".join([Bicorpus.START(), line, Bicorpus.END()]) )
 
     def __processBisequence(self, readIndex):
@@ -234,3 +243,13 @@ class Bicorpus:
         wordMap.write(path)
         if lang == Lang.SOURCE: self.sourceMapPath = path
         else:                   self.destMapPath   = path
+
+    def writeProps(self, path):
+        """
+        Writes various propertiets associated with the text (# sequences, #tokens, etc.)
+        """
+        with open(path, "w") as propsFile:
+            propsFile.write( str( len(self.sourceLines) + "\n")
+            num_tokens = str( max(sourceTokensCount, destTokensCount) )
+            propsFile.write( num_tokens + "\n" ) 
+

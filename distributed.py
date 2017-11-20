@@ -237,7 +237,10 @@ def train(train_reader, s2smodel, max_epochs, epoch_size):
     )
 
 
-    trainer = C.Trainer(None, criterion, parallelLearner)
+    progress = C.logging.ProgressPrinter(freq = minibatch_size, tag = "Hello", rank = C.distributed.Communicator.rank(), num_epochs = max_epochs)
+
+
+    trainer = C.Trainer(None, criterion, parallelLearner, progress_writers = progress)
 
     eval_freq = 100
 
@@ -271,9 +274,11 @@ def train(train_reader, s2smodel, max_epochs, epoch_size):
 def train_model(sourceMapping, destMapping, paths):
     with open(paths.getPropsPath(), "r") as props:
        numSequences = int( props.readline() )
-    epoch_size = numSequences * training_ratio
+       numTokens = int( props.readline() )
 
-    printOnce("Training on  " + str(epoch_size) + " sequences." )
+    epoch_size = numTokens * training_ratio
+
+    printOnce("Training on  " + str(epoch_size) + " samples divided among " + str(numSequences) " sequences.")
     printOnce("Source Vocab Size: " + str(sourceVocabSize))
     printOnce("  Dest Vocab Size: " + str(destVocabSize))
 

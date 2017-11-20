@@ -70,8 +70,7 @@ def parseCorpora(sourceLang, destLang, maxWords = 30000, maxSequences = 50000):
     print("Wrote", ctfPath)
 
     propsPath = __propsPath(sourceLang, destLang)
-    with open(propsPath, "w") as propsFile:
-        propsFile.write( str( len(bp.getTrainingLines()[0]) ) + "\n")
+    bp.writeProps(propsPath)
     print("Wrote", propsPath)
 
     #All the paths, exce are stored in the Bicorpus object
