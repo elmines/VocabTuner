@@ -1,3 +1,4 @@
+
 import cntk as C
 import numpy as np
 
@@ -48,7 +49,7 @@ length_increase = 1.5
 
 #Data hyperparameters
 training_ratio = 1 #3 / 4
-minibatch_size = 64
+minibatch_size = 128 
 max_epochs = 1
 
 
@@ -238,7 +239,7 @@ def train(train_reader, s2smodel, max_epochs, epoch_size):
 
 
     output_freq = 1
-    progress = C.logging.ProgressPrinter(freq = output_freq, tag = "Hello", rank = C.distributed.Communicator.rank() ) #, num_epochs = 42)
+    progress = C.logging.ProgressPrinter(freq = output_freq, tag = str( C.distributed.Communicator.rank() ), rank = C.distributed.Communicator.rank() ) #, num_epochs = 42)
 
 
     trainer = C.Trainer(None, criterion, parallelLearner, progress_writers = progress)
@@ -259,7 +260,6 @@ def train(train_reader, s2smodel, max_epochs, epoch_size):
          trainer = trainer, mb_source = train_reader,
 	 model_inputs_to_streams = {criterion.arguments[0]: train_reader.streams.features, criterion.arguments[1]: train_reader.streams.labels},
 	 mb_size = minibatch_size,
-	 #progress_frequency = minibatch_size,
          cv_config = None,
 	 checkpoint_config = None,
 	 test_config = None
@@ -280,6 +280,7 @@ def train_model(sourceMapping, destMapping, paths):
     epoch_size = numTokens * training_ratio
 
     printOnce("Training on  ~" + str(epoch_size) + " samples divided among ~" + str( int(numSequences * training_ratio) ) + " sequences." )
+    printOnce("Using minibatch size of " + str(minibatch_size))
     printOnce("Source Vocab Size: " + str(sourceVocabSize))
     printOnce("  Dest Vocab Size: " + str(destVocabSize))
 
