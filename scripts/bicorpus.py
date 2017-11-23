@@ -12,35 +12,22 @@ class Lang(Enum):
 
 class Bicorpus:
 
-
-    #########################RAW, INPUT TEXT########################
+    #########################CORPUS TEXT#############################
     rawSource = None
     rawDest = None
 
-    #########################CORPUS TEXT#############################
-    #The original (cleaned) lines of the text with no BPE merges
-    #Also available via altLines[0]
+
+    #The lines of the text with annotations.
     sourceLines = None
     destLines = None
-    #Dictionary: int -> (list of source langauge lines, list of dest language lines)
-    #The integer key indicates the number of byte-pair merges
-    altLines = None
-    
-
 
     ########################PROPS VARIABLES##########################
     sourceTokensCount = 0
     destTokensCount = 0
 
-    
-
     #The original one-hot vocabulary indices with no BPE merges
-    #Also available via altIndices[0]
     sourceMap = None
     destMap = None
-    #Dictionary: int -> (Source word<-->int mapping, Dest word<-->int mapping)
-    #The integer key indicates the number of byte-pair merges
-    altMap= None
 
     #Only to be used in our earlier model, while still representing input as full words
     sourceWordCounts = None
@@ -61,20 +48,11 @@ class Bicorpus:
         if not(maxSequences): maxSequences = len(sourceLines)
         self.rawSource = sourceLines
         self.rawDest = destLines
-
-
-        self.sourceLines = []
-        self.destLines = []
+        self.sourceLines = None
+        self.destLines = None
 
         self.sourceWordCounts = defaultdict(int)
         self.destWordCounts = defaultdict(int)
-        self.sourceMap, self.destMap = self.__genIndexDicts(maxWords, maxSequences)
-
-        self.altLines = {}
-        self.altLines[0] = (self.sourceLines, self.destLines)
-
-        self.altMap = {}
-        self.altMap[0] = (self.sourceMap, self.destMap)
 
         self.sourceMapPath = None
         self.destMapPath = None
@@ -139,34 +117,61 @@ class Bicorpus:
     def __processToken(self, token, lang):
         if lang == Lang.SOURCE: self.sourceWordCounts[token] += 1
         else:                   self.destWordCounts[token] += 1
+
+
+    def __processStrLine(self, line, lang):
+       tokenCount = 0
+       for token in tokens:
+           self.__processToken(token, lang)
+           tokenCount += 1
+
+        tokenCount += 2 #For start and end sequences
+        if lang == Lang.SOURCE: self.sourceTokensCount += tokenCount
+        else:                   self.destTokensCount += tokenCount
+
+        return " ".join([Bicorpus.START(), line, Bicorpus.END()])
+
+    def __processListLine(self, line, lang):
+
+        tokenCount = 0
+
+        for word in line:
+            for character in word:
+                self.__processToken(token, lang)
+                tokenCount += 1
+
+        tokenCount += 2
+        if lang == Lang.SOURCE: self.sourceTokensCount += tokenCount
+        else:                   self.destTokensCount += tokenCount
+
+        return [Bicorpus.START()] + line + [Bicorpus.END()]
         
     def __processSequence(self, line, lang):
         lines = self.sourceLines if lang == Lang.SOURCE else self.destLines
 
         tokenCount = 0
-        for token in line.split():
-            self.__processToken(token, lang)
-            tokenCount += 1
 
-	#Add annotative tokens after counting word tokens
-        tokenCount += 2 #For <s> and </s>
-        if lang == Lang.SOURCE: self.sourceTokensCount += tokenCount
-        else:                     self.destTokensCount += tokenCount
+        if type(line) == list: processed = self.__processListLine(line, lang)
+        else:                  processed = self.__processStrLine(line, lang)
 
-        lines.append( " ".join([Bicorpus.START(), line, Bicorpus.END()]) )
+        lines.append
+
 
     def __processBisequence(self, readIndex):
         """
 	    Return True if the sequences could be written and False otherwise.
 	"""
 
-        sourceLine = Bicorpus.__cleanSequence(self.rawSource[readIndex])
-        destLine = Bicorpus.__cleanSequence(self.rawDest[readIndex])
+        #sourceLine = Bicorpus.__cleanSequence(self.rawSource[readIndex])
+        #destLine = Bicorpus.__cleanSequence(self.rawDest[readIndex])
 
-        if (Bicorpus.__BADToken() in sourceLine) or (Bicorpus.__BADToken() in destLine): return False
+        sourceLine = self.rawSource[readIndex]
+        destLine = self.rawDest[readIndex]
 
-        self.__processSequence(sourceLine, lang = Lang.SOURCE)
-        self.__processSequence(destLine, lang = Lang.DEST)
+        #if (Bicorpus.__BADToken() in sourceLine) or (Bicorpus.__BADToken() in destLine): return False
+
+        self.sourceLines.append( self.__processSequence(sourceLine, Lang.SOURCE) )
+        self.destLines.append( self.__processSequence(destLine, Lang.DEST) )
         return True
 
 
@@ -211,7 +216,17 @@ class Bicorpus:
     def getTrainingLines(self):
         return self.sourceLines, self.destLines
 
+
+
+    
     def getMaps(self):
+        """
+        Returns the vocabulary mappings, generating them if need be.
+        """
+        if not(self.sourceMap):
+            self.sourceMap, self.destMap = self.__genIndexDicts(maxWords, maxSequences)
+            self.altMap[0] = (self.sourceMap, self.destMap)
+
         return self.sourceMap, self.destMap
 
     def getMapPath(self, lang):
