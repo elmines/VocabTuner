@@ -1,6 +1,6 @@
-from one2one import one2one
+#from bicorpus import Bicorpus
 
-class bpe_corpus:
+class BPECorpus:
     """
     Class for maintaining multiple states, each given a certain number of BPE operations.
 
@@ -30,19 +30,18 @@ class bpe_corpus:
     """
     
     views = None
-    dicts = None
-    charset = None
+    sourceCharset = None
+    destCharset = None
 
-    def __init__(self, base_corpus):
+    def __init__(self, sourceLines, destLines):
         """
         base_corpus -- the original text
             Currently may only be a list of strs.
         """
            
         self.views = {}
-        self.dicts = {}
         self.charset = set()
-        self.__initial_pass(base_corpus)
+        self.__initial_pass(sourceLines, destLines)
 
     @staticmethod
     def unknown_token():
@@ -62,23 +61,62 @@ class bpe_corpus:
     @staticmethod
     def space():
         """Token for representing a space between words (not just subword units) for an RNN."""
-        return "</s>"
+        return "<SPACE>"
+
+    @staticmethod
+    def __whitespaceChars():
+        return " \n\r\t"
 
  
 
-    def __initial_pass(base_corpus):
-        origView = {}
-        origDict = one2one
-        self.views[0] = origView
-        self.dicts[0] = origDict
+    def __initial_pass(self, sourceLines, destLines):
 
-        for line in base_corpus:
-            words = []
-            for word in line:
-               chars = word.split(" ")
-               self.add_bigrams(
+        splitSource = BPECorpus.__splitCorpTokens(sourceLines)
+        splitDest = BPECorpus.__splitCorpTokens(destLines)
 
-               for i range(len(token)): 
+
+        print(splitSource)
+        print(splitDest)
+
+
+    @staticmethod
+    def __splitCorpTokens(lines):
+
+        #splitted = [ BPECorpus.__splitLine(line) for line in lines ]
+        splitted = []
+        limit = 10
+        for i in range(limit):
+            splitted.append( BPECorpus.__splitLine(lines[i]) )
+
+        return splitted
+
+    @staticmethod
+    def __splitLine(line):
+        splitted = []
+
+        insertSpace = False
+
+        for token in line.strip().split(" "):
+           if insertSpace: splitted.append( BPECorpus.space() )
+           else:           insertSpace = True
+           splitted.append( BPECorpus.__splitToken(token) )
+
+        """
+        #Trim trail
+        if splitted[-1][-1] = '\n':
+            splitted[-1] = splitted[:-1]
+        """
+        return splitted
+
+    @staticmethod
+    def __splitToken(token):
+        splitted = []
+
+        for c in token:
+            splitted.append(c)
+
+        return " ".join(splitted)
+
                    
 
 
