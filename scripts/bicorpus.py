@@ -118,25 +118,37 @@ class Bicorpus:
 
 
     def __processToken(self, token, lang):
-        #token = Bicorpus.__cleanToken(token)
-        if lang == Lang.SOURCE: self.sourceWordCounts[token] += 1
-        else:                   self.destWordCounts[token] += 1
-        #print(lang, "wordCounts=", self.sourceWordCounts if lang == Lang.SOURCE else self.destWordCounts, sep = "")
+        """
+        Returns True for a good, clean token and False otherwise.
+        """
+        cleaned = Bicorpus.__cleanToken(token)
 
+        #If there was actually any text left after cleaning
+        if cleaned and cleaned != Bicorpus.__BADToken():
+            if lang == Lang.SOURCE: self.sourceWordCounts[cleaned] += 1
+            else:                   self.destWordCounts[cleaned] += 1
+        return cleaned
 
     def __processStrLine(self, line, lang):
         tokenCount = 0
         stripped = line.strip()
+        cleaned = []
+        
         for token in stripped.split(" "):
-            self.__processToken(token.lower(), lang) #FIXME: Don't do lowercasing of the text 
+            cleanedToken = self.__processToken(token, lang) #FIXME: Don't do lowercasing of the text 
+
+            if cleanedToken == Bicorpus.__BADToken(): return Bicorpus.__BADToken()
+            if cleanedToken: cleaned.append(cleanedToken)
+
             tokenCount += 1
 
         tokenCount += 2 #For start and end sequences
         if lang == Lang.SOURCE: self.sourceTokensCount += tokenCount
         else:                   self.destTokensCount += tokenCount
 
-        return " ".join([Bicorpus.START(), stripped, Bicorpus.END()])
+        return " ".join( [Bicorpus.START()] + cleaned +  [Bicorpus.END()] )
 
+    """
     def __processListLine(self, line, lang):
         print("Called processListLine()")
         tokenCount = 0
@@ -150,6 +162,7 @@ class Bicorpus:
         else:                   self.destTokensCount += tokenCount
 
         return [Bicorpus.START()] + line + [Bicorpus.END()]
+    """
         
     def __processSequence(self, line, lang):
         if type(line) == list: processed = self.__processListLine(line, lang)
@@ -163,10 +176,14 @@ class Bicorpus:
         sourceLine = self.rawSource[readIndex]
         destLine = self.rawDest[readIndex]
 
-        self.sourceLines.append( self.__processSequence(sourceLine, Lang.SOURCE) )
-        self.destLines.append( self.__processSequence(destLine, Lang.DEST) )
-        return True
+        sourceProcessed = self.__processSequence(sourceLine, Lang.SOURCE)
+        destProcessed = self.__processSequence(destLine, Lang.DEST)
 
+        if sourceProcessed != Bicorpus.__BADToken() and destProcessed != Bicorpus.__BADToken():
+            self.sourceLines.append( self.__processSequence(sourceLine, Lang.SOURCE) )
+            self.destLines.append( self.__processSequence(destLine, Lang.DEST) )
+            return True
+        return False
 
     #Returns a tuple of (word to index dictionary, index to word dictionary)
     def __indexDict(self, lang, size):
@@ -200,7 +217,7 @@ class Bicorpus:
         if not(numWords) or (minVocabSize < numWords):
             numWords = minVocabSize
 
-        print("numWords =", numWords)
+        #print("numWords =", numWords)
 
         sourceMap = self.__indexDict(Lang.SOURCE, numWords)
         destMap = self.__indexDict(Lang.DEST, numWords)
@@ -208,8 +225,8 @@ class Bicorpus:
         #print("sourceMap:", sourceMap)
         #print("destMap:", destMap)
 
-        print("len(sourceMap) =", len(sourceMap))
-        print("len(destMap) =", len(destMap))
+        #print("len(sourceMap) =", len(sourceMap))
+        #print("len(destMap) =", len(destMap))
 
         return sourceMap, destMap
 
