@@ -2,10 +2,19 @@
 
 CORPUS=$1
 
-TOK_CORPUS=${CORPUS}.tok
+#Outputs file path of tokenized CORPUS
 
-/home/ualelm/mosesdecoder/scripts/tokenizer/tokenizer.perl \
-  < $CORPUS \
-  > $TOK_CORPUS
+TOK_CORPUS=${CORPUS}.tok
+LANG_ABBR=`basename -s .train.tok $TOK_CORPUS`
+
+
+if [ ! -e $TOK_CORPUS ]
+then
+  /home/ualelm/mosesdecoder/scripts/tokenizer/tokenizer.perl \ 
+    -l $LANG_ABBR \ 
+    -threads 4 \ 
+    < $CORPUS \ 
+    > $TOK_CORPUS
+fi
 
 echo $TOK_CORPUS
