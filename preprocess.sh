@@ -34,59 +34,86 @@ then
   fi
 fi
 
-TRAIN_SUFFIX=.train
+TRAIN_SUFFIX=train
 #ROLES=($TRAIN_SUFFIX .dev .test)
-ROLES=($TRAIN_SUFFIX .dev)
+ROLES=($TRAIN_SUFFIX dev)
 
-
-RUNNING_SUFFIX=""
-TOK_SUFFIX=.tok
+###########################TOKENIZE#############################
+TOK_SUFFIX=tok
 for ROLE in ${ROLES[*]}
 do
-    ./tokenize.sh $DATA_DIR/${SOURCE_LANG}.$ROLE $TOK_SUFFIX $SOURCE_LANG
-    ./tokenize.sh $DATA_DIR/${DEST_LANG}.$ROLE   $TOK_SUFFIX $DEST_LANG
-done
-RUNNING_SUFFIX=${RUNNING_SUFFIX}.$TOK_SUFFIX
+    RAW_SOURCE=$DATA_DIR/${SOURCE_LANG}.$ROLE
+    TOK_SOURCE=${RAW_SOURCE}.$TOK_SUFFIX
 
-SOURCE_TC_MODEL=${SOURCE_LANG}.model
-DEST_TC_MODEL=${DEST_LANG}.model
+    RAW_DEST=$DATA_DIR/${DEST_LANG}.$ROLE
+    TOK_DEST=${RAW_DEST}.$TOK_SUFFIX
+
+    ./tokenize.sh $SOURCE_LANG $RAW_SOURCE $TOK_SOURCE
+    echo [`date`] "Wrote" $TOK_SOURCE
+
+    ./tokenize.sh $DEST_LANG   $RAW_DEST   $TOK_DEST
+    echo [`date`] "Wrote" $TOK_DEST
+done
+RUNNING_SUFFIX=$TOK_SUFFIX
+
+SOURCE_TC_MODEL=$DATA_DIR/${SOURCE_LANG}.model
+DEST_TC_MODEL=$DATA_DIR/${DEST_LANG}.model
 ./learn_truecase.sh \
-     $DATA_DIR/${SOURCE_LANG}.$TRAIN_SUFFIX.$RUNNING_SUFFIX \
+     $DATA_DIR/${SOURCE_LANG}.${TRAIN_SUFFIX}.$RUNNING_SUFFIX \
      $SOURCE_TC_MODEL
 ./learn_truecase.sh \
-     $DATA_DIR/${DEST_LANG}.$TRAIN_SUFFIX.$RUNNING_SUFFIX \
+     $DATA_DIR/${DEST_LANG}.${TRAIN_SUFFIX}.$RUNNING_SUFFIX \
      $DEST_TC_MODEL
 
-TC_SUFFIX=.tc
+echo  [`date`] "Trained truecase models" $SOURCE_TC_MODEL "and" $DEST_TC_MODEL
+
+###########################TRUECASE#############################
+TC_SUFFIX=tc
 for ROLE in ${ROLES[*]}
 do
-    RAW_SOURCE=$DATA_DIR/${SOURCE_LANG}.$ROLE.$RUNNING_SUFFIX
+    RAW_SOURCE=$DATA_DIR/${SOURCE_LANG}.${ROLE}.$RUNNING_SUFFIX
     TC_SOURCE=${RAW_SOURCE}.$TC_SUFFIX
 
-    RAW_DEST=$DATA_DIR/${DEST_LANG}.$ROLE.$RUNNING_SUFFIX
+    RAW_DEST=$DATA_DIR/${DEST_LANG}.${ROLE}.$RUNNING_SUFFIX
     TC_DEST=${RAW_DEST}.$TC_SUFFIX
 
     ./truecase.sh $SOURCE_TC_MODEL $RAW_SOURCE $TC_SOURCE
-    ./truecase.sh $DEST_TC_MODEL   $RAW_DEST   $TC_DEST
-done
+    echo [`date`] "Wrote" $TC_SOURCE
 
+    ./truecase.sh $DEST_TC_MODEL   $RAW_DEST   $TC_DEST
+    echo [`date`] "Wrote" $TC_DEST
+done
+RUNNING_SUFFIX=${RUNNING_SUFFIX}.$TC_SUFFIX
+
+##########################BYTE-PAIR ENCODING####################
+CODES=$DATA_DIR/${SOURCE_LANG}-${DEST_LANG}.codes
 SOURCE_VOCAB=$DATA_DIR/${SOURCE_LANG}.vocab
 DEST_VOCAB=$DATA_DIR/${DEST_LANG}.vocab
-#./learn_bpe.sh
+./learn_bpe.sh $DATA_DIR/${SOURCE_LANG}.${TRAIN_SUFFIX}.$RUNNING_SUFFIX \
+               $DATA_DIR/${DEST_LANG}.${TRAIN_SUFFIX}.$RUNNING_SUFFIX \
+               $CODES \
+               $SOURCE_VOCAB \
+               $DEST_VOCAB
+echo [`date`] "Wrote" $CODES $SOURCE_VOCAB $DEST_VOCAB
 
-RUNNING_SUFFIX=${RUNNING_SUFFIX}.$TC_SUFFIX
-BPE_SUFFIX=.bpe
+
+BPE_SUFFIX=bpe
 for ROLE in ${ROLES[*]}
 do
-    ./apply_bpe.sh $DATA_DIR/${SOURCE_LANG}.$ROLE.$RUNNING_SUFFIX
-    ./apply_bpe.sh $DATA_DIR/${DEST_LANG}.$ROLE.$RUNNING_SUFFIX
-done
+    RAW_SOURCE=$DATA_DIR/${SOURCE_LANG}.${ROLE}.$RUNNING_SUFFIX
+    BPE_SOURCE=${RAW_SOURCE}.$BPE_SUFFIX
 
+    RAW_DEST=$DATA_DIR/${DEST_LANG}.${ROLE}.$RUNNING_SUFFIX
+    BPE_DEST=${RAW_DEST}.$BPE_SUFFIX
+
+    ./apply_bpe.sh $RAW_SOURCE $CODES $SOURCE_VOCAB $BPE_SOURCE
+    echo [`date`] "Wrote" $BPE_SOURCE
+
+    ./apply_bpe.sh $RAW_DEST $CODES $DEST_VOCAB $BPE_DEST
+    echo [`date`] "Wrote" $BPE_DEST
+done
 RUNNING_SUFFIX=${RUNNING_SUFFIX}.$BPE_SUFFIX
 
-BPE_SOURCE=${BPE_FILES[0]}
-BPE_DEST=${BPE_FILES[1]}
-
-SUFFIX=.train.tok.tc.bpe
-JOINT_VOCAB=`./vocab.sh $DATA_DIR $BPE_SOURCE $BPE_DEST $SUFFIX`
-echo "Joint Vocab File:" $JOINT_VOCAB
+JOINT_VOCAB=$DATA_DIR/${SOURCE_LANG}-${DEST_LANG}.yml
+./vocab.sh $BPE_SOURCE $BPE_DEST $JOINT_VOCAB
+echo [`date`] "Generated vocabulary" $JOINT_VOCAB
