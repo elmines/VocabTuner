@@ -18,15 +18,19 @@ DEV_DEST=$EXPERIMENT/$DATA_DIR/${DEST_LANG}.dev.tok.tc.bpe
 JOINT_VOCAB=$EXPERIMENT/$DATA_DIR/${SOURCE_LANG}-${DEST_LANG}.yml
 
 #Models
-MODELS=$EXPERIMENT/$MODEL_DIR/
+MODELS=$EXPERIMENT/$MODEL_DIR/${SOURCE_LANG}-${DEST_LANG}.npz
 
 #Training Configuration
-CONFIG=$EXPERIMENT/$DATA_DIR/${SOURCE_LANG}-${DEST_LANG}.config.yml
+CONFIG=$EXPERIMENT/${SOURCE_LANG}-${DEST_LANG}.config.yml
 
 #Logging
-TRAIN_LOG=$EXPERIMENT/$DATA_DIR/${SOURCE_LANG}-${DEST_LANG}.train.log
-DEV_LOG=$EXPERIMENT/$DATA_DIR/${SOURCE_LANG}-${DEST_LANG}.dev.log
+TRAIN_LOG=$EXPERIMENT/$LOG_DIR/${SOURCE_LANG}-${DEST_LANG}.train.log
+DEV_LOG=$EXPERIMENT/$LOG_DIR/${SOURCE_LANG}-${DEST_LANG}.dev.log
 
+echo "MODELS=" $MODELS
+echo "CONFIG=" $CONFIG
+echo "TRAIN_LOG=" $TRAIN_LOG
+echo "DEV_LOG=" $DEV_LOG
 
 if [ ! -e $CONFIG ]
 then
@@ -37,14 +41,14 @@ then
         --train-sets $TRAIN_SOURCE $TRAIN_DEST \
         --valid-sets $DEV_SOURCE   $DEV_DEST \
         --vocabs $JOINT_VOCAB $JOINT_VOCAB \
-        --model  $MODEL \
+        --model  $MODELS \
         --enc-depth 4 --enc-type alternating --enc-cell lstm --enc-cell-depth 2 \
         --dec-depth 4                        --dec-cell lstm --dec-cell-base-depth 4 --dec-cell-high-depth 2 \
         --tied-embeddings \
         --layer-normalization \
         --skip \
-        --mini-batch-fit \
-        --workspace 6500 \
+        --mini-batch 64 \
+        --workspace 8192 \
         --dropout-rnn 0.2 --dropout-src 0.1 --exponential-smoothing \
         --early-stopping 5 --disp-freq 1000 \
         --device 0 \
@@ -52,4 +56,4 @@ then
         --dump-config > $CONFIG
 fi
 
-~/marian/build/marian --config $CONFIG
+#~/marian/build/marian --config $CONFIG
