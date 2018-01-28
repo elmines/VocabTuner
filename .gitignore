@@ -1,4 +1,15 @@
 experiments/
 
+#ASC Logs
+*.o1*
+*.i1*
+
+#Miscellaneous files
+test.sh
+marian_cmds
+
+#Scripts or the like unique to ASC server
+asc*
+
 #Files specifying server resources
 *.opt
