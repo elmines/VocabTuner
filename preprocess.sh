@@ -19,20 +19,9 @@
 
 #Within the data directory, there should be a directory {Source Language}-{Destination Language}
 
-DATA_ROOT=$1
+DATA_DIR=$1
 SOURCE_LANG=$2
 DEST_LANG=$3
-
-DATA_DIR=$DATA_ROOT/${SOURCE_LANG}-${DEST_LANG}
-if [ ! -e $DATA_DIR ]
-then
-  DATA_DIR=$DATA_ROOT/${DEST_LANG}-${SOURCE_LANG}
-  if [ ! -e $DATA_DIR ]
-  then
-    echo "Error: no data for language pair ${SOURCE_LANG}-${DEST_LANG}"
-    exit 1
-  fi
-fi
 
 TRAIN_SUFFIX=train
 #ROLES=($TRAIN_SUFFIX .dev .test)
