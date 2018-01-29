@@ -24,6 +24,7 @@ SOURCE_LANG=$2
 DEST_LANG=$3
 
 TRAIN_SUFFIX=train
+TEST_SUFFIX="test"
 #ROLES=($TRAIN_SUFFIX .dev .test)
 ROLES=($TRAIN_SUFFIX dev)
 
@@ -43,7 +44,13 @@ do
     ./tokenize.sh $DEST_LANG   $RAW_DEST   $TOK_DEST
     echo [`date`] "Wrote" $TOK_DEST
 done
+#Process test set source
+TOK_TEST=$DATA_DIR/${SOURCE_LANG}.$TEST_SUFFIX.$TOK_SUFFIX
+./tokenize.sh $SOURCE_LANG $DATA_DIR/${SOURCE_LANG}.$TEST_SUFFIX  $TOK_TEST
+echo [`date`] "Wrote" $TOK_TEST
+
 RUNNING_SUFFIX=$TOK_SUFFIX
+
 
 SOURCE_TC_MODEL=$DATA_DIR/${SOURCE_LANG}.model
 DEST_TC_MODEL=$DATA_DIR/${DEST_LANG}.model
@@ -72,6 +79,11 @@ do
     ./truecase.sh $DEST_TC_MODEL   $RAW_DEST   $TC_DEST
     echo [`date`] "Wrote" $TC_DEST
 done
+#Process Test set source
+TC_TEST=${TOK_TEST}.$TC_SUFFIX
+./truecase.sh $SOURCE_TC_MODEL $TOK_TEST $TC_TEST
+echo [`date`] "Wrote" $TC_TEST
+
 RUNNING_SUFFIX=${RUNNING_SUFFIX}.$TC_SUFFIX
 
 ##########################BYTE-PAIR ENCODING####################
@@ -101,6 +113,12 @@ do
     ./apply_bpe.sh $RAW_DEST $CODES $DEST_VOCAB $BPE_DEST
     echo [`date`] "Wrote" $BPE_DEST
 done
+#Process test set source
+BPE_TEST=${TC_TEST}.$BPE_SUFFIX
+./apply_bpe.sh $TC_TEST $CODES $SOURCE_VOCAB $BPE_TEST
+echo [`date`] "Wrote" $BPE_TEST
+
+
 RUNNING_SUFFIX=${RUNNING_SUFFIX}.$BPE_SUFFIX
 
 JOINT_VOCAB=$DATA_DIR/${SOURCE_LANG}-${DEST_LANG}.yml
