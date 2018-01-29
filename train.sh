@@ -56,4 +56,4 @@ then
         --dump-config > $CONFIG
 fi
 
-#~/marian/build/marian --config $CONFIG
+~/marian/build/marian --config $CONFIG
