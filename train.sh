@@ -4,7 +4,8 @@ module load boost/1.58.0 cuda/8.0.44
 
 EXPERIMENT=$1
 SOURCE_LANG=$2
-DEST_LANG=$3
+#Declare DEST_LANG as global because the validation scripts needs it but can't take parameters
+export DEST_LANG=$3 
 
 DATA_DIR=data
 MODEL_DIR=models
