@@ -16,7 +16,7 @@ cat $RAW_TRANSLATION | \
     sed -r 's/(@@ )|(@@ ?$)//g' | \
     ~/mosesdecoder/scripts/recaser/detruecase.perl | \
     ~/mosesdecoder/scripts/tokenizer/detokenizer.perl | \
-    ~/scripts/wrap-xml.perl $DEST_LANG $REFERENCE $SYSTEM \
+    ~/scripts/wrap-xml.perl $DEST_LANG $SOURCE $SYSTEM \
     > $SGML_TRANSLATION
     
 perl ~/scripts/mteval-v14.pl  -s $SOURCE -r $REFERENCE -t $SGML_TRANSLATION
