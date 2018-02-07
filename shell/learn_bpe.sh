@@ -9,7 +9,7 @@ SOURCE_VOCAB=$4
 DEST_VOCAB=$5
 
 #A constant (for now)
-NUM_SEQUENCES=60000
+NUM_SEQUENCES=100000
 
 if [ ! -e $CODES ]
 then
