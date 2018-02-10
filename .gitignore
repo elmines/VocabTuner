@@ -1,5 +1,9 @@
 experiments/
 
+#pycache
+__pycache__
+*.pyc
+
 #ASC Logs
 *.o1*
 *.i1*
