@@ -13,6 +13,10 @@ import skopt
 
 import numpy as np
 
+
+def f():
+    print("Hello, world!")
+
 def preprocess(source_lang, dest_lang):
     experiment_dir = os.path.abspath( os.path.join("experiments", source_lang + "-" + dest_lang) )
     data_dir = os.path.join(experiment_dir, "data")
@@ -30,8 +34,6 @@ class Experiment:
 
     best_model = None
 
-    
-
     @staticmethod
     def __log_extension():
         return ".log"
@@ -45,7 +47,10 @@ class Experiment:
         index = path.rfind(extension)
         return os.path.abspath( path[:index] + ".s" + str(num_codes) + extension )
 
-    def __init__(self, training_source, training_dest, dev_source, dev_dest, dest_lang = "en", joint_vocab = None, source_vocab = None, dest_vocab = None, model_prefix = None, train_log_prefix = None, translation_dir = None):
+    def __init__(self, training_source, training_dest, dev_source, dev_dest,
+                       dest_lang = "en",
+                       joint_vocab = None, source_vocab = None, dest_vocab = None,
+                       model_prefix = None, train_log_prefix = None, translation_dir = None):
         """
         dest_lang specifies the target language when using Moses's wrap_xml.perl
         Either joint_vocab must be specified, or both source_vocab and dest_vocab must be specified.
@@ -57,14 +62,22 @@ class Experiment:
         self.dev_dest = os.path.abspath(dev_dest)
         self.dest_lang = dest_lang
 
+        print("training_source = %s" % training_source)
+        print("training_dest = %s" % training_dest)
+        print("dev_source = %s" % dev_source)
+        print("dev_dest = %s" % dev_dest)
+        print("dest_lang = %s" % dest_lang)
+
         if joint_vocab:
             self.source_vocab = os.path.abspath(joint_vocab)
             self.dest_vocab = self.source_vocab
-        elif source_vocab and dest_vocab
+        elif source_vocab and dest_vocab:
             self.source_vocab = source_vocab
             self.dest_vocab = dest_vocab
         else:
             raise ValueError("Must specify either joint_vocab or both source_vocab and dest_vocab")
+
+        print("source_vocab = %s, dest_vocab = %s" % (self.source_vocab, self.dest_vocab))
 
 
         if not(model_prefix):
@@ -74,6 +87,7 @@ class Experiment:
         else:
            self.model_prefix = model_prefix
 
+        print("model_prefix = %s" % self.model_prefix) 
 
         if not(train_log_prefix):
            self.train_log_prefix = "train" + Experiment.__log_extension()
@@ -82,11 +96,14 @@ class Experiment:
         else:
             self.train_log_prefix = train_log_prefix
 
+        print("train_log_prefix = %s" % self.train_log_prefix)
 
         if not(translation_dir):
-            self.translation_dir = os.path.abspath( os.path(".") )
+            self.translation_dir = os.path.abspath( os.path.join(".") )
         else:
-            self.translation_dir = translation_dir
+            self.translation_dir = os.path.abspath( translation_dir )
+
+        print("translation_dir = %s" % self.translation_dir)
 
     def parse_nist(report):
         scoreLabel = "NIST score = "
@@ -106,7 +123,7 @@ class Experiment:
                 scoreIndex = startIndex + len(scoreLabel)
                 scoreString = line[scoreIndex : ].split(" ")[0]
                 print("Extracting the NIST score")
-                return maxRawScore = float(scoreString)
+                return maxRawScore - float(scoreString)
 
         return float("inf")
                          
@@ -119,13 +136,14 @@ class Experiment:
 
         sgm_translation = os.path.abspath( os.path.join(self.translation_dir, dest_lang + ".s" + str(num_codes) + ".tst.sgm") )
 
+        print("Translating development set with %d codes and writing to %s" % (num_codes, sgm_translation))
 
         translate_command = [      "shell/translate.sh", str(self.source_vocab), str(self.dest_vocab), str(self.dev_source),
                               "|", "shell/postprocess.sh", self.dest_lang, str(self.dev_source),
                               ">", str(sgm_translation)
                             ]
 
-        score_command = [ "~/scripts/mteval-v14.pl", "-s" str(self.dev_source), "-t", str(sgm_translation), "-r", str(self.dev_dest)]
+        score_command = [ "~/scripts/mteval-v14.pl", "-s", str(self.dev_source), "-t", str(sgm_translation), "-r", str(self.dev_dest)]
 
         translating = subprocess.Popen( translate_command, universal_newlines=True, stdout=subprocess.PIPE)
         output = translating.communicate()[0] 
@@ -156,9 +174,11 @@ class Experiment:
                           str(self.training_dest),
                           str(source_vocab),
                           str(dest_vocab),
-                          str(model_path)
+                          str(model_path),
                           str(log_path)
                          ]
+
+         print("Starting training on %d codes" % num_codes)
 
          training = subprocess.Popen(train_command, universal_newlines=True)
          (output, err) = training.communicate()
@@ -167,7 +187,7 @@ class Experiment:
          if status:
              raise RuntimeError("Training process with " + str(num_codes) + " merges failed with exit code " + str(status))
 
-         print("Finished training successfully")
+         print("Finished training on %d codes" % num_codes)
 
          return self.scoreNist(model_path, num_codes) 
    
@@ -192,4 +212,4 @@ if __name__ == "__main__":
         preprocess(source_lang, dest_lang)
     else:
         exp = Experiment(source_lang, dest_lang)
-        exp.run_experiment()
+        #exp.run_experiment()
