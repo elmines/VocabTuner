@@ -41,6 +41,7 @@ class Experiment:
     joint_codes = None
     source_codes = None
     dest_codes = None
+    vocab_prefix = None
 
     max_merges = 100000 #Constant for now
 
@@ -55,6 +56,19 @@ class Experiment:
         return ".npz"
 
     @staticmethod
+    def __vocab_extension():
+        return ".vocab"
+
+    @staticmethod
+    def __process_prefix(user_prefix, default_basename, extension):
+        if not(user_prefix):
+           return default_basename + extension
+        elif not user_prefix.endswith(extension):
+           return user_prefix + extension
+        else:
+           return user_prefix
+
+    @staticmethod
     def detailed_path(path, num_merges, extension):
         index = path.rfind(extension)
         return os.path.abspath( path[:index] + ".s" + str(num_merges) + extension )
@@ -63,7 +77,7 @@ class Experiment:
                        dest_lang = "en",
                        joint_codes = None,
                        source_codes = None, dest_codes = None,
-                       model_prefix = None, train_log_prefix = None, translation_dir = None):
+                       model_prefix = None, train_log_prefix = None, vocab_dir = None, translation_dir = None):
         """
         dest_lang specifies the target language when using Moses's wrap_xml.perl
         Either joint_vocab must be specified, or both source_vocab and dest_vocab must be specified.
@@ -75,8 +89,8 @@ class Experiment:
         self.dev_dest = os.path.abspath(dev_dest)
         self.dest_lang = dest_lang
 
-        print("train_source = %s" % train_source)
-        print("train_dest = %s" % train_dest)
+        #print("train_source = %s" % train_source)
+        #print("train_dest = %s" % train_dest)
         #print("dev_source = %s" % dev_source)
         #print("dev_dest = %s" % dev_dest)
         #print("dest_lang = %s" % dest_lang)
@@ -91,26 +105,19 @@ class Experiment:
         else:
             raise ValueError("Must specify either joint_codes or both source_codes and dest_codes")
 
-        print("joint_codes = %s, source_codes = %s, dest_codes = %s" % (self.joint_codes, self.source_codes, self.dest_codes))
+        #print("joint_codes = %s, source_codes = %s, dest_codes = %s" % (self.joint_codes, self.source_codes, self.dest_codes))
 
-
-        if not(model_prefix):
-           self.model_prefix = "model" + Experiment.__model_extension()
-        elif not model_prefix.endswith(Experiment.__model_extension()) :
-           self.model_prefix = model_prefix + Experiment.__model_extension()
-        else:
-           self.model_prefix = model_prefix
-
+        self.model_prefix = Experiment.__process_prefix(model_prefix, "model", Experiment.__model_extension())
         #print("model_prefix = %s" % self.model_prefix) 
 
-        if not(train_log_prefix):
-           self.train_log_prefix = "train" + Experiment.__log_extension()
-        elif not train_log_prefix.endswith(Experiment.__log_extension()):
-           self.train_log_prefix = train_log_prefix + Experiment.__log_extension()
-        else:
-            self.train_log_prefix = train_log_prefix
-
+        self.train_log_prefix = Experiment.__process_prefix(model_prefix, "train", Experiment.__log_extension())
         #print("train_log_prefix = %s" % self.train_log_prefix)
+
+        if not(vocab_dir):
+            self.vocab_dir = os.path.abspath( os.path.join(".") )
+        else:
+            self.vocab_dir = os.path.abspath( vocab_dir )
+        #print("vocab_dir = %s" % self.vocab_dir)
 
         if not(translation_dir):
             self.translation_dir = os.path.abspath( os.path.join(".") )
@@ -179,69 +186,77 @@ class Experiment:
 
     @staticmethod
     def __preprocess_corpus(raw, processed, bp_encoder):
-        with (open(raw, "r"), open(processed, "w")) as r, p:
+        with open(raw, "r") as r, open(processed, "w") as p:
             for line in r.readlines():
                 p.write(bp_encoder.segment(line).strip())
                 p.write("\n")
 
     def __generate_vocabs(self, bpe_train_source, bpe_train_dest, num_merges):
        if self.joint_codes:
-           source_vocab = os.path.join( "joint" + ".s" + num_merges + ".vocab")
+           source_vocab = os.path.join(self.vocab_dir, "joint.s%d" % num_merges)
            dest_vocab = source_vocab
-           vocab_command = ["cat", str(bpe_train_source), str(bpe_train_dest), "|",
-                            "marian/build/marian-vocab", ">", str(source_vocab)
-                           ]
+           #print("source_vocab = %s" % source_vocab)
 
-           vocab_proc = subprocess.Popen(vocab_command, universal_newlines=True)
+           cat_command = ["cat", str(bpe_train_source), str(bpe_train_dest)]
+           cat_proc = subprocess.Popen(cat_command, stdout = subprocess.PIPE, universal_newlines=True)
+
+           with open(source_vocab, "w") as out:
+               vocab_command = ["/home/ualelm/marian/build/marian-vocab"]
+               vocab_proc = subprocess.Popen(vocab_command, stdin = cat_proc.stdout, stdout=out, universal_newlines=True)
+
            status = vocab_proc.wait()
            if status:
-               raise RuntimeError("Generating joint vocabulary with " + str(num_merges[0]) + " merges failed with exit code " + str(status))
+               raise RuntimeError("Generating joint vocabulary with " + str(num_merges) + " merges failed with exit code " + str(status))
 
        else:
-           source_vocab = os.path.join( "source.s%d.vocab" % num_merges)
-           dest_vocab = os.path.join( "dest.s%d.vocab" % num_merges)
+           source_vocab = os.path.join(self.vocab_dir, "source.s%d.vocab" % num_merges)
+           dest_vocab = os.path.join(self.vocab_dir, "dest.s%d.vocab" % num_merges)
 
            vocab_proc = subprocess.Popen(["marian/build/marian-vocab"], universal_newlines=True, stdin=bpe_train_source, stdout=source_vocab)
            status = vocab_proc.wait()
            if status:
-              raise RuntimeError("Generating source vocabulary with " + str(num_merges[0]) + " merges failed with exit code " + str(status))
+              raise RuntimeError("Generating source vocabulary with " + str(num_merges) + " merges failed with exit code " + str(status))
 
            vocab_proc = subprocess.Popen(["marian/build/marian-vocab"], universal_newlines=True, stdin=bpe_train_dest, stdout=dest_vocab)
            status = vocab_proc.wait()
            if status:
-              raise RuntimeError("Generating dest vocabulary with " + str(num_merges[0]) + " merges failed with exit code " + str(status))
+              raise RuntimeError("Generating dest vocabulary with " + str(num_merges) + " merges failed with exit code " + str(status))
 
        return (source_vocab, dest_vocab)
 
 
     def __preprocess_corpora(self, num_merges):
-       #FIXME
-       bpe_train_source = os.path.join( str(self.train_source) + ".s" + num_merges)
-       bpe_train_dest = os.path.join( str(self.train_dest) + ".s" + num_merges)
+       bpe_train_source = os.path.join( str(self.train_source) + ".s" + str(num_merges))
+       bpe_train_dest = os.path.join( str(self.train_dest) + ".s" + str(num_merges))
 
-       bpe_dev_source = os.path.join( str(self.dev_source) + ".s" + num_merges)
-       bpe_dev_dest = os.path.join( str(self.dev_dest) + ".s" + num_merges)
+       bpe_dev_source = os.path.join( str(self.dev_source) + ".s" + str(num_merges))
+       bpe_dev_dest = os.path.join( str(self.dev_dest) + ".s" + str(num_merges))
 
        toReturn = (bpe_train_source, bpe_train_dest, bpe_dev_source, bpe_dev_dest)
-       print("File paths for %d merges:" % num_merges, str(toReturn))
-       exit(0)
+       print("File paths for %d merges:" %  num_merges, str(toReturn))
 
+       print("source_codes =", self.source_codes)
        with open(self.source_codes, "r") as src_codes:
            source_encoder = BPE(src_codes, num_merges)
            Experiment.__preprocess_corpus(self.train_source, bpe_train_source, source_encoder)
+           print("Wrote %s" % str(bpe_train_source))
            Experiment.__preprocess_corpus(self.dev_source, bpe_dev_source, source_encoder)
+           print("Wrote %s" % str(bpe_dev_source))
 
 
        with open(self.dest_codes, "r") as dst_codes:
            dest_encoder = BPE(dst_codes, num_merges)
            Experiment.__preprocess_corpus(self.train_dest, bpe_train_dest, dest_encoder)
-           Experiment.__preprocess_corpus(self.dev_dest, bpe_dev_dest, source_dest)
+           print("Wrote %s" % str(bpe_train_dest))
+           Experiment.__preprocess_corpus(self.dev_dest, bpe_dev_dest, dest_encoder)
+           print("Wrote %s" % str(bpe_dev_dest))
 
+
+       #(source_vocab, dest_vocab) = self.__generate_vocabs(bpe_dev_source, bpe_dev_dest, num_merges)
        (source_vocab, dest_vocab) = self.__generate_vocabs(bpe_train_source, bpe_train_dest, num_merges)
 
 
        toReturn = (bpe_train_source, bpe_train_dest, bpe_dev_source, bpe_dev_dest, source_vocab, dest_vocab)
-       print("File paths for %d merges:" % num_merges, str(toReturn))
 
        return toReturn
 
@@ -254,9 +269,11 @@ class Experiment:
          #print("log_path = %s" % log_path)
 
 
-         (bpe_train_source, bpe_train_dest, bpe_dev_source, bpe_dev_dest, source_vocab, dest_vocab) = self.__preprocess_corpora(num_merges)
-         #Assign to source_vocab
-         #Assign to dest_vocab
+         (bpe_train_source, bpe_train_dest, bpe_dev_source, bpe_dev_dest, source_vocab, dest_vocab) = self.__preprocess_corpora(num_merges[0])
+
+         print(bpe_train_source, bpe_train_dest, bpe_dev_source, bpe_dev_dest, source_vocab, dest_vocab, sep = ",") 
+         print("Preprocessed text")
+         exit(0)
 
          train_command = [ "shell/train_brief.sh",
                           str(self.train_source),
