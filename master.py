@@ -1,9 +1,10 @@
-from run_experiment import Experiment
+from experiment import Experiment
 
 exp = Experiment("experiments/es-en/data/es.train.tok.tc",
                  "experiments/es-en/data/en.train.tok.tc",
+                 "experiments/es-en/data/es.dev.sgm",
+                 "experiments/es-en/data/en.dev.sgm",
                  "experiments/es-en/data/es.dev.tok.tc",
-                 "experiments/es-en/data/en.dev.tok.tc",
                  #dest_lang = "en",
                  joint_codes = "experiments/es-en/data/es-en.codes",
                  model_prefix = "experiments/es-en/models/es-en",

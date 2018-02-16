@@ -9,14 +9,10 @@ SOURCE_VOCAB=$2
 DEST_VOCAB=$3
 SOURCE_TEXT=$4
 
-#Outputs
-TRANSLATION=$5
-
-
-
 ~/marian/build/marian-decoder \
    --models $MODEL \
-   --vocabs $SOURCE_VOCAB $DEST_VOCAB \
    --input $SOURCE_TEXT \
-   --devices 0 \
-   > $TRANSLATION
+   --vocabs $SOURCE_VOCAB $DEST_VOCAB \
+   --devices 0
+
+

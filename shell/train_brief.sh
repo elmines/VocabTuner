@@ -11,20 +11,21 @@ SEED=1
 
 let EPOCH_SIZE=2**17 #Approximately 100,000
 let MINIBATCH_SIZE=2**5 
+let NUM_MINIBATCHES=$EPOCH_SIZE/$MINIBATCH_SIZE
 
 ~/marian/build/marian \
     --type s2s \
     --train-sets $SOURCE $DEST \
     --vocabs $SOURCE_VOCAB $DEST_VOCAB \
-    --models $MODEL_PREFIX \
+    --model $MODEL_PREFIX \
     --enc-type alternating \
     --enc-cell lstm \
     --tied-embeddings \
     --layer-normalization \
     --skip \
     --mini-batch $MINIBATCH_SIZE \
+    --after-batches $NUM_MINIBATCHES \
     --workspace 8192 \
-    --device 0 \
     --log $TRAIN_LOG \
-    --seed $SEED
-
+    --seed $SEED \
+    --device 0 

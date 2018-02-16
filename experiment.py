@@ -19,6 +19,8 @@ if subword_nmt not in sys.path:
 from apply_bpe import BPE
 
 
+SKIP_PREPROC = True
+SKIP_TRAIN = True
 
 def f():
     print("Hello, world!")
@@ -36,8 +38,11 @@ class Experiment:
 
     train_source = None
     train_dest = None
-    dev_source = None
-    dev_dest = None
+
+    dev_source_preproc = None  #Preproccessed development set aligned with dev_source
+    dev_source = None          #Source SGM file for development set
+    dev_dest = None            #Destination SGM file for development set
+
     joint_codes = None
     source_codes = None
     dest_codes = None
@@ -73,7 +78,8 @@ class Experiment:
         index = path.rfind(extension)
         return os.path.abspath( path[:index] + ".s" + str(num_merges) + extension )
 
-    def __init__(self, train_source, train_dest, dev_source, dev_dest,
+    def __init__(self, train_source, train_dest,
+                       dev_source, dev_dest, dev_source_preproc,
                        dest_lang = "en",
                        joint_codes = None,
                        source_codes = None, dest_codes = None,
@@ -87,13 +93,8 @@ class Experiment:
         self.train_dest = os.path.abspath(train_dest)
         self.dev_source = os.path.abspath(dev_source)
         self.dev_dest = os.path.abspath(dev_dest)
+        self.dev_source_preproc = os.path.abspath(dev_source_preproc)
         self.dest_lang = dest_lang
-
-        #print("train_source = %s" % train_source)
-        #print("train_dest = %s" % train_dest)
-        #print("dev_source = %s" % dev_source)
-        #print("dev_dest = %s" % dev_dest)
-        #print("dest_lang = %s" % dest_lang)
 
         if joint_codes:
             self.joint_codes = os.path.abspath(joint_codes)
@@ -105,26 +106,19 @@ class Experiment:
         else:
             raise ValueError("Must specify either joint_codes or both source_codes and dest_codes")
 
-        #print("joint_codes = %s, source_codes = %s, dest_codes = %s" % (self.joint_codes, self.source_codes, self.dest_codes))
 
         self.model_prefix = Experiment.__process_prefix(model_prefix, "model", Experiment.__model_extension())
-        #print("model_prefix = %s" % self.model_prefix) 
-
         self.train_log_prefix = Experiment.__process_prefix(model_prefix, "train", Experiment.__log_extension())
-        #print("train_log_prefix = %s" % self.train_log_prefix)
 
         if not(vocab_dir):
             self.vocab_dir = os.path.abspath( os.path.join(".") )
         else:
             self.vocab_dir = os.path.abspath( vocab_dir )
-        #print("vocab_dir = %s" % self.vocab_dir)
 
         if not(translation_dir):
             self.translation_dir = os.path.abspath( os.path.join(".") )
         else:
             self.translation_dir = os.path.abspath( translation_dir )
-
-        #print("translation_dir = %s" % self.translation_dir)
 
     def parse_nist(report):
         scoreLabel = "NIST score = "
@@ -135,9 +129,6 @@ class Experiment:
         else:
             lines = report.split("\n")
          
-        while line and (not line.startswith(scoreLabel)):
-            line = fp.readline()
-
         for line in lines:
             if line.startswith(scoreLabel):
                 startIndex = line.index(scoreLabel)
@@ -149,38 +140,37 @@ class Experiment:
         return float("inf")
                          
 
-    def score_nist(self, model_path, num_merges):
-        #Translate validation set text
-        #Postprocess translation (including XML)
-        #Score translation using mteval-v14.pl
-    
-
-        sgm_translation = os.path.abspath( os.path.join(self.translation_dir, dest_lang + ".s" + str(num_merges) + ".tst.sgm") )
+    def score_nist(self, model, source_vocab, dest_vocab, bpe_dev_source, num_merges):
+        sgm_translation = os.path.abspath( os.path.join(self.translation_dir, self.dest_lang + ".s" + str(num_merges) + ".tst.sgm") )
 
         print("Translating development set with %d merges and writing to %s" % (num_merges, sgm_translation))
 
-        translate_command = [      "shell/translate.sh", str(self.source_vocab), str(self.dest_vocab), str(self.dev_source),
-                              "|", "shell/postprocess.sh", self.dest_lang, str(self.dev_source),
-                              ">", str(sgm_translation)
-                            ]
 
-        score_command = [ "~/scripts/mteval-v14.pl", "-s", str(self.dev_source), "-t", str(sgm_translation), "-r", str(self.dev_dest)]
-
+        #Good
+        translate_command = ["shell/translate.sh", str(model), str(source_vocab), str(dest_vocab), str(bpe_dev_source)]
         translating = subprocess.Popen( translate_command, universal_newlines=True, stdout=subprocess.PIPE)
-        output = translating.communicate()[0] 
-        status = translating.wait()
+
+        #FIXME: Need to get the proper path for dev_source_sgm
+        with open(sgm_translation, "w") as out:
+            postprocess_command = ["shell/postprocess.sh", self.dest_lang, str(bpe_dev_source)]
+            postprocess = subprocess.Popen( postprocess_command, universal_newlines=True, stdin=translating.stdout, stdout=out)
+            status = translating.wait()
         if status:
             raise RuntimeError("Translation process with " + str(num_merges) + " merges failed with exit code " + str(status)) 
 
         print("Finished translating successfully")
 
+        score_command = [ "~/scripts/mteval-v14.pl", "-s", str(self.dev_source), "-t", str(sgm_translation), "-r", str(self.dev_dest)]
         scoring = subprocess.Popen(score_command, universal_newlines=True, stdout=subprocess.PIPE)
         output = scoring.communicate()[0]
         status = scoring.wait()
         if status:
             raise RuntimeError("Scoring process with " + str(num_merges) + " merges failed with exit code " + str(status)) 
 
+
         print("Finished scoring process successfully")
+        print(output)
+        exit(0)
 
         return parse_nist(output)
 
@@ -195,6 +185,9 @@ class Experiment:
        if self.joint_codes:
            source_vocab = os.path.join(self.vocab_dir, "joint.s%d" % num_merges)
            dest_vocab = source_vocab
+
+           if SKIP_PREPROC: return (source_vocab, dest_vocab)
+
            #print("source_vocab = %s" % source_vocab)
 
            cat_command = ["cat", str(bpe_train_source), str(bpe_train_dest)]
@@ -211,6 +204,8 @@ class Experiment:
        else:
            source_vocab = os.path.join(self.vocab_dir, "source.s%d.vocab" % num_merges)
            dest_vocab = os.path.join(self.vocab_dir, "dest.s%d.vocab" % num_merges)
+
+           if SKIP_PREPROC: return (source_vocab, dest_vocab)
 
            vocab_proc = subprocess.Popen(["marian/build/marian-vocab"], universal_newlines=True, stdin=bpe_train_source, stdout=source_vocab)
            status = vocab_proc.wait()
@@ -229,27 +224,28 @@ class Experiment:
        bpe_train_source = os.path.join( str(self.train_source) + ".s" + str(num_merges))
        bpe_train_dest = os.path.join( str(self.train_dest) + ".s" + str(num_merges))
 
-       bpe_dev_source = os.path.join( str(self.dev_source) + ".s" + str(num_merges))
+       bpe_dev_source = os.path.join( str(self.dev_source_preproc) + ".s" + str(num_merges))
        bpe_dev_dest = os.path.join( str(self.dev_dest) + ".s" + str(num_merges))
 
        toReturn = (bpe_train_source, bpe_train_dest, bpe_dev_source, bpe_dev_dest)
-       print("File paths for %d merges:" %  num_merges, str(toReturn))
+       #print("File paths for %d merges:" %  num_merges, str(toReturn))
 
-       print("source_codes =", self.source_codes)
-       with open(self.source_codes, "r") as src_codes:
-           source_encoder = BPE(src_codes, num_merges)
-           Experiment.__preprocess_corpus(self.train_source, bpe_train_source, source_encoder)
-           print("Wrote %s" % str(bpe_train_source))
-           Experiment.__preprocess_corpus(self.dev_source, bpe_dev_source, source_encoder)
-           print("Wrote %s" % str(bpe_dev_source))
+       if not SKIP_PREPROC:
+           print("source_codes =", self.source_codes)
+           with open(self.source_codes, "r") as src_codes:
+               source_encoder = BPE(src_codes, num_merges)
+               Experiment.__preprocess_corpus(self.train_source, bpe_train_source, source_encoder)
+               print("Wrote %s" % str(bpe_train_source))
+               Experiment.__preprocess_corpus(self.dev_source, bpe_dev_source, source_encoder)
+               print("Wrote %s" % str(bpe_dev_source))
 
 
-       with open(self.dest_codes, "r") as dst_codes:
-           dest_encoder = BPE(dst_codes, num_merges)
-           Experiment.__preprocess_corpus(self.train_dest, bpe_train_dest, dest_encoder)
-           print("Wrote %s" % str(bpe_train_dest))
-           Experiment.__preprocess_corpus(self.dev_dest, bpe_dev_dest, dest_encoder)
-           print("Wrote %s" % str(bpe_dev_dest))
+           with open(self.dest_codes, "r") as dst_codes:
+               dest_encoder = BPE(dst_codes, num_merges)
+               Experiment.__preprocess_corpus(self.train_dest, bpe_train_dest, dest_encoder)
+               print("Wrote %s" % str(bpe_train_dest))
+               #Experiment.__preprocess_corpus(self.dev_dest, bpe_dev_dest, dest_encoder)
+               #print("Wrote %s" % str(bpe_dev_dest))
 
 
        #(source_vocab, dest_vocab) = self.__generate_vocabs(bpe_dev_source, bpe_dev_dest, num_merges)
@@ -269,11 +265,14 @@ class Experiment:
          #print("log_path = %s" % log_path)
 
 
+         #print("About to call preprocess_corpora")
          (bpe_train_source, bpe_train_dest, bpe_dev_source, bpe_dev_dest, source_vocab, dest_vocab) = self.__preprocess_corpora(num_merges[0])
 
-         print(bpe_train_source, bpe_train_dest, bpe_dev_source, bpe_dev_dest, source_vocab, dest_vocab, sep = ",") 
-         print("Preprocessed text")
-         exit(0)
+         print(bpe_train_source, bpe_train_dest, bpe_dev_source, bpe_dev_dest, source_vocab, dest_vocab)
+
+         #exit(0)
+
+         if SKIP_TRAIN: return self.score_nist(model_path, source_vocab, dest_vocab, bpe_dev_source, num_merges[0]) 
 
          train_command = [ "shell/train_brief.sh",
                           str(self.train_source),
@@ -284,7 +283,7 @@ class Experiment:
                           str(log_path)
                          ]
 
-         print("Starting training on %d merges" % num_merges)
+         print("Starting training on %d merges" % num_merges[0])
 
          training = subprocess.Popen(train_command, universal_newlines=True)
          (output, err) = training.communicate()
@@ -295,7 +294,7 @@ class Experiment:
 
          print("Finished training on %d merges" % num_merges[0])
 
-         return self.score_nist(model_path, num_merges[0]) 
+         return self.score_nist(model_path, source_vocab, dest_vocab, bpe_dev_source, num_merges[0]) 
    
 
     def optimize_merges(self):
