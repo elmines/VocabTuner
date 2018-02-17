@@ -145,22 +145,27 @@ class Experiment:
 
         print("Translating development set with %d merges and writing to %s" % (num_merges, sgm_translation))
 
-
         #Good
         translate_command = ["shell/translate.sh", str(model), str(source_vocab), str(dest_vocab), str(bpe_dev_source)]
         translating = subprocess.Popen( translate_command, universal_newlines=True, stdout=subprocess.PIPE)
 
+        #status = translating.wait()
+        #if status:
+        #    raise RuntimeError("Translation process with " + str(num_merges) + " merges failed with exit code " + str(status)) 
+
         #FIXME: Need to get the proper path for dev_source_sgm
         with open(sgm_translation, "w") as out:
-            postprocess_command = ["shell/postprocess.sh", self.dest_lang, str(bpe_dev_source)]
-            postprocess = subprocess.Popen( postprocess_command, universal_newlines=True, stdin=translating.stdout, stdout=out)
-            status = translating.wait()
+            postprocess_command = ["shell/postprocess.sh", self.dest_lang, str(self.dev_source)]
+            postprocessing = subprocess.Popen( postprocess_command, universal_newlines=True, stdin=translating.stdout, stdout=out)
+            status = postprocessing.wait()
         if status:
             raise RuntimeError("Translation process with " + str(num_merges) + " merges failed with exit code " + str(status)) 
 
         print("Finished translating successfully")
 
-        score_command = [ "~/scripts/mteval-v14.pl", "-s", str(self.dev_source), "-t", str(sgm_translation), "-r", str(self.dev_dest)]
+        exit(0)
+
+        score_command = ["perl", "/home/ualelm/scripts/mteval-v14.pl", "-s", str(self.dev_source), "-t", str(sgm_translation), "-r", str(self.dev_dest)]
         scoring = subprocess.Popen(score_command, universal_newlines=True, stdout=subprocess.PIPE)
         output = scoring.communicate()[0]
         status = scoring.wait()
@@ -231,7 +236,7 @@ class Experiment:
        #print("File paths for %d merges:" %  num_merges, str(toReturn))
 
        if not SKIP_PREPROC:
-           print("source_codes =", self.source_codes)
+           #print("source_codes =", self.source_codes)
            with open(self.source_codes, "r") as src_codes:
                source_encoder = BPE(src_codes, num_merges)
                Experiment.__preprocess_corpus(self.train_source, bpe_train_source, source_encoder)
@@ -283,7 +288,7 @@ class Experiment:
                           str(log_path)
                          ]
 
-         print("Starting training on %d merges" % num_merges[0])
+         #print("Starting training on %d merges" % num_merges[0])
 
          training = subprocess.Popen(train_command, universal_newlines=True)
          (output, err) = training.communicate()
@@ -292,7 +297,7 @@ class Experiment:
          if status:
              raise RuntimeError("Training process with " + str(num_merges[0]) + " merges failed with exit code " + str(status))
 
-         print("Finished training on %d merges" % num_merges[0])
+         #print("Finished training on %d merges" % num_merges[0])
 
          return self.score_nist(model_path, source_vocab, dest_vocab, bpe_dev_source, num_merges[0]) 
    
