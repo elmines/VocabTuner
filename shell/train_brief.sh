@@ -9,9 +9,10 @@ LOG=$6
 
 SEED=1
 
-let EPOCH_SIZE=2**17 #Approximately 100,000
-let MINIBATCH_SIZE=2**5 
+let EPOCH_SIZE=2**17     #Approximately 100,000
+let MINIBATCH_SIZE=2**5  #Hopefully it's evident that is 32
 let NUM_MINIBATCHES=$EPOCH_SIZE/$MINIBATCH_SIZE
+let DISP_FREQ=1
 
 ~/marian/build/marian \
     --type s2s \
@@ -26,6 +27,7 @@ let NUM_MINIBATCHES=$EPOCH_SIZE/$MINIBATCH_SIZE
     --mini-batch $MINIBATCH_SIZE \
     --after-batches $NUM_MINIBATCHES \
     --workspace 8192 \
+    --disp-freq $DISP_FREQ \
     --log $TRAIN_LOG \
     --seed $SEED \
     --device 0 
