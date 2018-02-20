@@ -9,7 +9,7 @@ LOG=$6
 
 SEED=1
 
-let EPOCH_SIZE=2**17     #Approximately 100,000
+let EPOCH_SIZE=2**18     #Approximately 250,000
 let MINIBATCH_SIZE=2**5  #Hopefully it's evident that is 32
 let NUM_MINIBATCHES=$EPOCH_SIZE/$MINIBATCH_SIZE
 let DISP_FREQ=1
@@ -28,6 +28,6 @@ let DISP_FREQ=1
     --after-batches $NUM_MINIBATCHES \
     --workspace 8192 \
     --disp-freq $DISP_FREQ \
-    --log $TRAIN_LOG \
+    --log $LOG \
     --seed $SEED \
     --device 0 

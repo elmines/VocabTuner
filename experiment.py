@@ -112,7 +112,7 @@ class Experiment:
         self.model_prefix = Experiment.__process_prefix(model_prefix, "model", Experiment.__model_extension())
         if self.verbose: print("Set model prefix as %s" % str(self.model_prefix))
 
-        self.train_log_prefix = Experiment.__process_prefix(model_prefix, "train", Experiment.__log_extension())
+        self.train_log_prefix = Experiment.__process_prefix(train_log_prefix, "train", Experiment.__log_extension())
         if self.verbose: print("Set training log prefix as %s" % str(self.train_log_prefix))
 
         if not(vocab_dir):
@@ -258,9 +258,14 @@ class Experiment:
                          ]
 
          training = subprocess.Popen(train_command, universal_newlines=True)
+         (output, err) = training.communicate()
          status = training.wait()
          if status:
+             print(output)
+             print(err)
              raise RuntimeError("Training process with " + str(num_merges[0]) + " merges failed with exit code " + str(status))
+
+         exit(0)
 
          return self.score_nist(model_path, source_vocab, dest_vocab, bpe_dev_source, num_merges[0]) 
    
@@ -268,7 +273,7 @@ class Experiment:
     def optimize_merges(self):
         res = skopt.gp_minimize( self.vocab_rating,
                                  [ (0, self.max_merges) ],
-                                 n_calls = 10,
+                                 n_calls = 20,
                                  random_state = 1,
                                  verbose = self.verbose)
         return res
