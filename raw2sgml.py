@@ -1,7 +1,7 @@
 
 import xml.etree.ElementTree as ET
 import argparse
-import codecs
+#import codecs
 
 
 """
@@ -39,14 +39,47 @@ import codecs
 def create_parser():
     parser = argparse.ArgumentParser(description="Convert plain-text parallel corpora to SGML format")
 
-    parser.add_argument("-i", "--input", required=True, nargs=2, metavar=("<src>", "<ref>"), type = argparse.FileType("r"))
-    parser.add_argument("-o", "--output", required=True, nargs=2, metavar=("<src>", "<ref>"), type = argparse.FileType("w"))
-    parser.add_argument("-l", "--trg_lang", default="en", metavar=("xx"), type=str)
+    parser.add_argument("--input", "-i", required=True, nargs=2, metavar=("<src>", "<ref>"), type = argparse.FileType("r"))
+    parser.add_argument("--output", "-o", required=True, nargs=2, metavar=("<src>", "<ref>"), type = argparse.FileType("w"))
+    parser.add_argument("--trg_lang", "-l", default="en", metavar=("xx"), type=str)
+    parser.add_argument("--id", default="", help="setid XML attribute for source and reference sets")
 
     return parser
 
-def write_xml(raw_source, raw_ref, xml_source, xml_ref, trg_lang):
+def gen_tree(raw, root):
+    giant_doc = ET.SubElement(root, "doc")
+    giant_doc.set("sysid", "ref")
+    giant_doc.set("docid", "xxxxx")
+    giant_doc.set("genre", "xxxxx")
+    giant_doc.set("origlang", "xx")
+    giant_paragraph = ET.SubElement(giant_doc, "p")
+
+    with open(raw, "r") as r:
+        i = 1
+        for line in r.readlines():
+            segment = ET.SubElement(giant_paragraph, "seg")
+            segment.text = line.strip()
+            segment.set("id", str(i))
+            i += 1
+
+    return ET.ElementTree(root)
+
+def write_xml(raw_source, raw_ref, xml_source, xml_ref, trg_lang, setid):
+    src_root = ET.Element("srcset")
+    src_root.set("setid", setid)
+    srcset = gen_tree(raw_source, src_root)
+
+    ref_root = ET.Element("refset")
+    ref_root.set("setid", setid)
+    ref_root.set("trglang", trg_lang)
+    refset = gen_tree(raw_ref, ref_root)
+
+    srcset.write(xml_source, encoding = "utf-8")
+    refset.write(xml_ref, encoding = "utf-8")
+
     return 0
 
 parser = create_parser()
-parser.parse_args()
+args = parser.parse_args()
+
+write_xml( (args.input)[0].name, (args.input[1]).name, (args.output[0]).name, (args.output[1]).name, args.trg_lang, args.id)
