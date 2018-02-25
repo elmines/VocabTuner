@@ -1,34 +1,38 @@
+import sys
 import os
 import argparse
 import subprocess
 
+subword_nmt = os.path.join("/home/ualelm", "subword_fork")
+if subword_nmt not in sys.path:
+    sys.path.append(subword_nmt)
+import learn_bpe
 
+
+codes_suffix = ".codes"
 tok_suffix = ".tok"
 tc_suffix = ".tc"
 tc_model_suffix = tc_suffix + "_model"
 
+num_sequences_DEFAULT = 200000
 write_dir_DEFAULT = os.path.abspath(".")
 suffix_DEFAULT = tok_suffix + tc_suffix
 
 def create_parser():
     parser = argparse.ArgumentParser(description="Tokenize, truecase, and learn BPE codes of plain-text parallel corpora")
 
-    parser.add_argument("--train", required=True, nargs=2, metavar=("<src_path>", "<ref_path>"), type = argparse.FileType("r"))
-
-    parser.add_argument("--codes", "-c", required=True, nargs="+", metavar=("<codes_path>"), type = argparse.FileType("w"), help="Paths for one or two BPE codes files")
-    parser.add_argument("--joint", "-j", action="store_true", help="Generate joint BPE codes file (uses only 1st path of --codes)")
-
-
+    parser.add_argument("--train", required=True, nargs=2, metavar=("<src_path>", "<ref_path>"), type = argparse.FileType("r"), help="Source and destination training corpora")
     parser.add_argument("--langs", "-l", required=True, nargs=2, metavar=("xx", "xx"), type=str, help="ISO 2-char language codes for source and target languages")
 
+    parser.add_argument("--joint", "-j", action="store_true", help="Generate joint BPE codes file instead of two separate ones")
+    parser.add_argument("--num-sequences", "-s", default=num_sequences_DEFAULT, metavar="n", type=int, help="Number of codes to write to a BPE File (default %(default)s)")
 
-    parser.add_argument("--suffix", default=suffix_DEFAULT, metavar=".xxxx", type=str, help="suffix to append to output file names (default %(default)s)")
+    parser.add_argument("--suffix", default=suffix_DEFAULT, metavar=".xxxx", type=str, help="suffix to append to cleaned file names (default %(default)s)")
 
     parser.add_argument("--write-dir", "-d", default=write_dir_DEFAULT, metavar="<dir>", type=os.path.abspath, help="Directory to write processed corpora (default current directory")
 
-    parser.add_argument("--source", nargs="+", metavar=("<src_path>"), type = argparse.FileType("r"), help="Additional source corpora to tokenize and truecase")
-    parser.add_argument("--dest", nargs="+", metavar=("<dest_path>"), type = argparse.FileType("r"), help="Additional destination corpora to tokenize and truecase")
-
+    parser.add_argument("--extra-source", nargs="+", metavar=("<src_path>"), type = argparse.FileType("r"), help="Additional source corpora to tokenize and truecase")
+    parser.add_argument("--extra-dest", nargs="+", metavar=("<dest_path>"), type = argparse.FileType("r"), help="Additional destination corpora to tokenize and truecase")
 
     parser.add_argument("--verbose", "-v", action="store_true", help="Show paths of all files written")
 
@@ -67,6 +71,8 @@ def truecase(tok, tc, tc_model):
     if status:
         raise RuntimeError("Truecasing of %s failed with exit code %d" % (tok, status))
 
+
+
 def tok_and_tc(raw, cleaned, lang, tc_model):
     """
     Tokenize and truecase without the need for any intermediate file
@@ -96,26 +102,41 @@ def tok_and_learn_tc(raw, lang, suffix=suffix_DEFAULT, write_dir=write_dir_DEFAU
 
     return (clean, tc_model)
 
-def process_train_corp(source_raw, dest_raw, langs, joint=False, suffix=suffix_DEFAULT, write_dir=write_dir_DEFAULT, verbose=False):
-    (source_clean, source_tc_model) = tok_and_learn_tc(source_raw, langs[0], suffix=suffix, write_dir=write_dir, verbose=verbose)
-    (dest_clean, dest_tc_model) = tok_and_learn_tc(dest_raw, langs[1], suffix=suffix, write_dir=write_dir, verbose=verbose)
 
 
-def main(train, codes, langs, joint=False, suffix=suffix_DEFAULT, write_dir=write_dir_DEFAULT, extra_source = None, extra_dest = None, verbose=False):
+def main(train, langs, joint=False, num_sequences=num_sequences_DEFAULT, suffix=suffix_DEFAULT, write_dir=write_dir_DEFAULT, extra_source = None, extra_dest = None, verbose=False):
     if not os.path.isdir(write_dir):
         raise ValueError("write_dir %s does not exist" % os.path.abspath(write_dir))
-  
-    process_train_corp(train[0].name, train[1].name, langs, joint=joint, suffix=suffix, write_dir=write_dir, verbose=verbose)
 
-    """
-    for source in extra_source:
+    (source_clean, source_tc_model) = tok_and_learn_tc(train[0].name, langs[0], suffix=suffix, write_dir=write_dir, verbose=verbose)
+    (dest_clean, dest_tc_model) = tok_and_learn_tc(train[1].name, langs[1], suffix=suffix, write_dir=write_dir, verbose=verbose)
 
-    for dest in extra_dest:
-    """
+    source_codes = os.path.abspath( os.path.join(write_dir, langs[0] + codes_suffix) )
+    with open(source_clean, "r", encoding="utf-8") as corp, open(source_codes, "w", encoding="utf-8") as codes:
+        learn_bpe.main(corp, codes, num_sequences)
+    if verbose: print("Wrote codes file %s" % source_codes)
 
+    dest_codes = os.path.abspath( os.path.join(write_dir, langs[1] + codes_suffix) )
+    with open(dest_clean, "r", encoding="utf-8") as corp, open(dest_codes, "w", encoding="utf-8") as codes:
+        learn_bpe.main(corp, codes, num_sequences)
+    if verbose: print("Wrote codes file %s" % dest_codes)
+
+    if extra_source: 
+        for source in extra_source:
+            cleaned = os.path.abspath( os.path.join(write_dir, os.path.basename(source.name) + suffix) )
+            tok_and_tc(source.name, cleaned, langs[0], source_tc_model)
+            if verbose: print("Wrote cleaned source corpus %s" % cleaned)
+
+    if extra_dest:
+        for dest in extra_dest:
+            cleaned = os.path.abspath( os.path.join(write_dir, os.path.basename(dest.name) + suffix) )
+            tok_and_tc(dest.name, cleaned, langs[1], dest_tc_model)
+            if verbose: print("Wrote cleaned dest corpus %s" % dest)
     
 if __name__ == "__main__":
     parser = create_parser()
     args = parser.parse_args()
 
-    main(args.train, args.codes, args.langs, joint = args.joint, suffix=args.suffix, write_dir=args.write_dir, extra_source=args.source, extra_dest=args.dest, verbose=args.verbose)
+    main(args.train, args.langs,
+         joint = args.joint, num_sequences=args.num_sequences, suffix=args.suffix, write_dir=args.write_dir,
+         extra_source=args.extra_source, extra_dest=args.extra_dest, verbose=args.verbose)
