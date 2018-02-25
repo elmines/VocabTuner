@@ -2,8 +2,6 @@ import xml.etree.ElementTree as ET
 import argparse
 import random
 
-DEBUG = False
-
 def str2ratio(argument):
     vals = argument.split(":")
     if len(vals) != 3:
@@ -30,9 +28,12 @@ def create_parser():
     parser.add_argument("--test_plain", metavar="<src_path>", type = argparse.FileType("w"), help ="Output: source test set in plain text")
     parser.add_argument("--test_id", default="", help="setid XML attribute for test sets")
 
-    parser.add_argument("--ratio", "-r", default = (1.0, 0.0, 0.0), metavar="a:b:c", type = str2ratio, help = "Ratio of sizes of source, dev, and test sets")
+    parser.add_argument("--ratio", "-r", default = (1.0, 0.0, 0.0), metavar="train:dev:test", type = str2ratio, help = "Ratio of sizes of training, development, and test sets")
+    parser.add_argument("--max-sequences", "--max", metavar="n", type=int, help="Maximum number of sequences to use for training, development, and test sets")
 
     parser.add_argument("--seed", "-s", default=1, metavar="n", type=int, help="Random number seed for shuffling text corpora")
+
+    parser.add_argument("--verbose", "-v", action="store_true", help="Display helpful messages")
 
     return parser
 
@@ -66,6 +67,9 @@ def write_plain(path, lines):
     with open(path, "w", encoding = "utf-8") as out:
         out.write("\n".join(lines))
 
+def verbose_message(verbose, path):
+    if verbose: print("Wrote %s" % path)
+
 if __name__ == "__main__":
     parser = create_parser()
     args = parser.parse_args()
@@ -76,11 +80,15 @@ if __name__ == "__main__":
     with open(args.input[0].name, "r", encoding = "utf-8") as source:
         src_lines = [line.strip() for line in source.readlines()]
         random.shuffle(src_lines)
+        if args.max_sequences and args.max_sequences < len(src_lines):
+            src_lines = src_lines[:args.max_sequences]
         
     random.setstate(init_state) #Shuffle the ref_lines exactly the same as the src_lines
     with open(args.input[1].name, "r", encoding = "utf-8") as reference:
         ref_lines = [line.strip() for line in reference.readlines()]
         random.shuffle(ref_lines)
+        if args.max_sequences and args.max_sequences < len(ref_lines):
+            ref_lines = ref_lines[:args.max_sequences]
 
     train_end = int( len(src_lines) * args.ratio[0])
     train_src = src_lines[0:train_end]
@@ -93,10 +101,10 @@ if __name__ == "__main__":
     test_src = src_lines[dev_end: ]
     test_ref = ref_lines[dev_end: ]
 
-    if DEBUG:
-        print("num training lines =", len(train_src))
-        print("num dev lines = ", len(dev_src))
-        print("num test lines = ", len(test_src))
+    if args.verbose:
+        print("   Number of total training sequences =", len(train_src))
+        print("Number of total development sequences =", len(dev_src))
+        print("       Number of total test sequences =", len(test_src))
 
 
     write_plain(args.train[0].name, train_src)
@@ -104,10 +112,20 @@ if __name__ == "__main__":
 
     if args.dev:
         write_src_xml(args.dev[0].name, dev_src, args.dev_id)
+        verbose_message(args.verbose, args.dev[0].name)
+
         write_ref_xml(args.dev[1].name, dev_ref, args.dev_id, args.trglang)
-    if args.dev_plain: write_plain(args.dev_plain.name, dev_src)
+        verbose_message(args.verbose, args.dev[1].name)
+    if args.dev_plain:
+        write_plain(args.dev_plain.name, dev_src)
+        verbose_message(args.verbose, args.dev_plain.name)
 
     if args.test:
         write_src_xml(args.test[0].name, test_src, args.test_id)
+        verbose_message(args.verbose, args.test[0].name)
+
         write_ref_xml(args.test[1].name, test_ref, args.test_id, args.trglang)
-    if args.test_plain: write_plain(args.test_plain.name, test_src)
+        verbose_message(args.verbose, args.test[1].name)
+    if args.test_plain:
+        write_plain(args.test_plain.name, test_src)
+        verbose_message(args.verbose, args.test_plain.name)
