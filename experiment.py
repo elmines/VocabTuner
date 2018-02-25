@@ -75,9 +75,9 @@ class Experiment:
            return user_prefix
 
     @staticmethod
-    def detailed_path(path, num_merges, extension):
+    def detailed_path(path, merges, extension):
         index = path.rfind(extension)
-        return os.path.abspath( path[:index] + ".s" + str(num_merges) + extension )
+        return os.path.abspath( path[:index] + ".s" + merges + extension )
 
     def __init__(self, train_source, train_dest,
                        dev_source, dev_dest, dev_source_preproc,
@@ -217,14 +217,16 @@ class Experiment:
 
 
     def __preprocess_corpora(self, num_merges):
-       bpe_train_source = os.path.join( str(self.train_source) + ".s" + str(num_merges))
-       bpe_train_dest = os.path.join( str(self.train_dest) + ".s" + str(num_merges))
+       source_merges = num_merges[0]
+       dest_merges = source_merges if len(num_merges) == 1 else num_merges[1]
 
-       bpe_dev_source = os.path.join( str(self.dev_source_preproc) + ".s" + str(num_merges))
-       bpe_dev_dest = os.path.join( str(self.dev_dest) + ".s" + str(num_merges))             #FIXME: We don't actually need this corpus
+       bpe_train_source = os.path.join( str(self.train_source) + ".s" + str(source_merges))
+       bpe_train_dest = os.path.join( str(self.train_dest) + ".s" + str(dest_merges))
+
+       bpe_dev_source = os.path.join( str(self.dev_source_preproc) + ".s" + str(source_merges))
 
        with open(self.source_codes, "r") as src_codes:
-           source_encoder = BPE(src_codes, num_merges)
+           source_encoder = BPE(src_codes, source_merges)
 
            Experiment.__preprocess_corpus(self.train_source, bpe_train_source, source_encoder)
            if self.verbose: print("Wrote segmented training source corpus to %s" % str(bpe_train_source))
@@ -240,19 +242,23 @@ class Experiment:
 
        (source_vocab, dest_vocab) = self.__generate_vocabs(bpe_train_source, bpe_train_dest, num_merges)
 
-       return (bpe_train_source, bpe_train_dest, bpe_dev_source, bpe_dev_dest, source_vocab, dest_vocab)
+       return (bpe_train_source, bpe_train_dest, bpe_dev_source)
 
 
     def vocab_rating(self, num_merges):
 
-         if num_merges[0] in self.score_table:
-             if self.verbose: print("Returning cached score of %f" % self.score_table[num_merges[0]])    
-             return self.score_table[num_merges[0]]
+         if num_merges in self.score_table:
+             if self.verbose: print("Returning cached score of %f" % self.score_table[num_merges])    
+             return self.score_table[num_merges]
 
-         model_path = Experiment.detailed_path(self.model_prefix, num_merges[0], Experiment.__model_extension())
-         log_path = Experiment.detailed_path(self.train_log_prefix, num_merges[0], Experiment.__log_extension())
+         if len(num_merges) == 1: merges_string = num_merges[0]
+         else:                    merges_string = num_merges[0] + "-" + num_merges[1]
 
-         (bpe_train_source, bpe_train_dest, bpe_dev_source, bpe_dev_dest, source_vocab, dest_vocab) = self.__preprocess_corpora(num_merges[0])
+         model_path = Experiment.detailed_path(self.model_prefix, merges_string, Experiment.__model_extension())
+         log_path = Experiment.detailed_path(self.train_log_prefix, merges_string, Experiment.__log_extension())
+
+         (bpe_train_source, bpe_train_dest, bpe_dev_source) = self.__preprocess_corpora(num_merges)
+         (source_vocab, dest_vocab) = self.__generate_vocabs(bpe_train_source, bpe_train_dest, num_merges)
 
          train_command = [ "shell/train_brief.sh",
                           str(self.train_source),
@@ -266,10 +272,10 @@ class Experiment:
          training = subprocess.Popen(train_command, universal_newlines=True)
          status = training.wait()
          if status:
-             raise RuntimeError("Training process with " + str(num_merges[0]) + " merges failed with exit code " + str(status))
+             raise RuntimeError("Training process with " + str(num_merges) + " merges failed with exit code " + str(status))
 
-         score = self.score_nist(model_path, source_vocab, dest_vocab, bpe_dev_source, num_merges[0]) 
-         self.score_table[num_merges[0]] = score
+         score = self.score_nist(model_path, source_vocab, dest_vocab, bpe_dev_source, num_merges) 
+         self.score_table[num_merges] = score
          return score
    
 
