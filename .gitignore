@@ -15,6 +15,5 @@ marian_cmds
 
 #Scripts or the like unique to ASC server
 asc*
-
 #Files specifying server resources
 *.opt

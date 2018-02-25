@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SRC_LANG=ar
-DST_LANG=ru
+SRC_LANG=es
+DST_LANG=en
 
 MOSES=/home/ualelm/mosesdecoder
 TOKENIZATION=$MOSES/scripts/tokenizer
@@ -12,8 +12,8 @@ PATH=$TOKENIZATION:$CASING:$PATH
 
 
 DATA=experiments/$SRC_LANG-$DST_LANG/data
-TRAIN_SRC=$DATA/${SRC_LANG}.orig
-TRAIN_DST=$DATA/${DST_LANG}.orig
+TRAIN_SRC=$DATA/${SRC_LANG}.train
+TRAIN_DST=$DATA/${DST_LANG}.train
 
 JOINT_CODES=$DATA/${SRC_LANG}-${DST_LANG}.codes
 SRC_CODES=$DATA/${SRC_LANG}.codes
