@@ -275,24 +275,26 @@ class Experiment:
         #print(bpe_train_source, bpe_train_dest, source_vocab, dest_vocab)
 
         marian_command = ["marian", 
+                          #General options
+                          "--workspace", str(8192),         #8192MB = 8GB (on the Pascal GPU, half the memory)
+                          "--log", str(log_path),
+                          "--quiet",
+                          "--seed", str(self.seed),
+                          #Model options
+                          "--model", str(model_path),
                           "--type", "s2s",
+                          "--dim-emb", str(512),
+                          "--dim-rnn", str(1024),
+                          "--skip",
+                          "--layer-normalization",
+                          "--tied-embeddings",
+                          #Training options
                           "--train-sets", str(bpe_train_source), str(bpe_train_dest),
                           "--vocabs", str(source_vocab), str(dest_vocab),
-                          "--model", str(model_path),
-                          "--dim-emb", str(256),
-                          "--dim-rnn", str(512),
-                          "--tied-embeddings",
-                          "--layer-normalization",
-                          "--skip",
-                          "--mini-batch", str(minibatch_size),
-                          "--after-batches", str(5),
-                          #"--after-epochs", 1,
-                          "--workspace", str(8192),
+                          "--after-epochs", str(3),
                           "--disp-freq", str(disp_freq),
-                          "--quiet",
-                          "--log", str(log_path),
-                          "--seed", str(self.seed),
-                          "--device", str(0)
+                          "--device", str(0),
+                          "--mini-batch-fit", str(minibatch_size)
                           ]
 
         training = subprocess.Popen(marian_command, universal_newlines=True)
