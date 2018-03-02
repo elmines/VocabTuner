@@ -28,7 +28,7 @@ def create_parser():
 
     parser.add_argument("--codes", required=True, nargs="+", metavar="<codes_path>", type=os.path.abspath, help="BPE codes file(s) (pass in only one if using joint codes)")
 
-    parser.add_argument("--max-sequences", "-s", default=max_sequences_DEFAULT, nargs="+", metavar="n", type=int, help="Number of codes to write to a BPE File (default %(default)s); include two numbers for different limits on source and dest codes")
+    parser.add_argument("--max-sequences", "-s", default=max_sequences_DEFAULT, nargs="+", metavar="n", type=int, help="Maximum number of codes to use from BPE code file(s) (default %(default)s); include two numbers for different limits on source and dest codes")
 
 
     parser.add_argument("--translation-dir", "--trans", default=working_directory(), metavar="<dir>", type=os.path.abspath, help="Directory to write translated text (default current directory")
@@ -75,7 +75,7 @@ class Experiment:
     def __merges_string(num_merges):
         if type(num_merges) != list: return ".s" + str(num_merges)
         if len(num_merges) > 1:      return ".s" + str(num_merges[0]) + "-" + str(num_merges[1])
-        return ".s" + str(num_merges[0])
+        return ".s" + str(num_merges[0]) + "-" + str(num_merges[0])
 
     def __init__(self, codes,
                        train_source, train_dest,
@@ -122,6 +122,8 @@ class Experiment:
         self.translation_dir = os.path.abspath(translation_dir)
         if self.verbose: print("Set working directory as translation directory.")
 
+        self.seed = 1 #FIXME: Make this customizable by the user
+
         self.score_table = []
 
     def __already_used(self, num_merges):
@@ -155,8 +157,6 @@ class Experiment:
     def score_nist(self, model, source_vocab, dest_vocab, bpe_dev_source, num_merges):
         sgm_translation = os.path.abspath( os.path.join(self.translation_dir, self.dest_lang + Experiment.__merges_string(num_merges) + ".dev.sgm") )
 
-        #translate_command = ["shell/translate.sh", str(model), str(source_vocab), str(dest_vocab), str(bpe_dev_source)]
-
         translate_command = ["marian-decoder",
                              "--models", str(model),
                              "--input", str(bpe_dev_source),
@@ -172,9 +172,6 @@ class Experiment:
         with open(sgm_translation, "w") as out:
             wrapping = subprocess.Popen(["wrap-xml.perl", self.dest_lang, str(self.dev_source), "TheUniversityOfAlabama"], universal_newlines=True, stdin=detokenizing.stdout, stdout=out)
             status = wrapping.wait() 
-            #postprocess_command = ["shell/postprocess.sh", self.dest_lang, str(self.dev_source)]
-            #postprocessing = subprocess.Popen( postprocess_command, universal_newlines=True, stdin=translating.stdout, stdout=out)
-            #status = postprocessing.wait()
             if status:
                 raise RuntimeError("Translation process with " + str(num_merges) + " merges failed with exit code " + str(status)) 
 
@@ -237,7 +234,7 @@ class Experiment:
 
     def __preprocess_corpora(self, num_merges):
        source_merges = num_merges[0]
-       dest_merges = source_merges if self.joint_codes else num_merges[1]
+       dest_merges = source_merges if len(num_merges) == 1 else num_merges[1]
 
        bpe_train_source = os.path.join( str(self.train_source) + Experiment.__merges_string(source_merges))
        bpe_train_dest = os.path.join( str(self.train_dest) + Experiment.__merges_string(dest_merges))
@@ -263,7 +260,48 @@ class Experiment:
        return (bpe_train_source, bpe_train_dest, bpe_dev_source)
 
 
-    def vocab_rating(self, num_merges):
+    def __train_brief(self, bpe_train_source, bpe_train_dest, source_vocab, dest_vocab, num_merges):
+        """
+        Returns the path of the model trained.
+        """
+        merges_string = Experiment.__merges_string(num_merges)
+        model_path = Experiment.__detailed_path(self.model_prefix, merges_string, Experiment.__model_extension())
+        log_path = Experiment.__detailed_path(self.train_log_prefix, merges_string, Experiment.__log_extension())
+
+        epoch_size = 100000
+        minibatch_size = 2**6
+        disp_freq = epoch_size // minibatch_size
+
+        #print(bpe_train_source, bpe_train_dest, source_vocab, dest_vocab)
+
+        marian_command = ["marian", 
+                          "--type", "s2s",
+                          "--train-sets", str(bpe_train_source), str(bpe_train_dest),
+                          "--vocabs", str(source_vocab), str(dest_vocab),
+                          "--model", str(model_path),
+                          "--dim-emb", str(256),
+                          "--dim-rnn", str(512),
+                          "--tied-embeddings",
+                          "--layer-normalization",
+                          "--skip",
+                          "--mini-batch", str(minibatch_size),
+                          "--after-batches", str(5),
+                          #"--after-epochs", 1,
+                          "--workspace", str(8192),
+                          "--disp-freq", str(disp_freq),
+                          "--quiet",
+                          "--log", str(log_path),
+                          "--seed", str(self.seed),
+                          "--device", str(0)
+                          ]
+
+        training = subprocess.Popen(marian_command, universal_newlines=True)
+        status = training.wait()
+        if status: raise RuntimeError("Training process with " + str(num_merges) + " merges failed with exit code " + str(status))
+
+        return model_path
+
+    def __vocab_rating(self, num_merges):
 
          sys.stdout.flush()
 
@@ -273,26 +311,9 @@ class Experiment:
              if self.verbose: print("Returning cached score of %f" % score)
              return score
 
-         merges_string = Experiment.__merges_string(num_merges)
-         model_path = Experiment.__detailed_path(self.model_prefix, merges_string, Experiment.__model_extension())
-         log_path = Experiment.__detailed_path(self.train_log_prefix, merges_string, Experiment.__log_extension())
-
-
          (bpe_train_source, bpe_train_dest, bpe_dev_source) = self.__preprocess_corpora(num_merges)
          (source_vocab, dest_vocab) = self.__generate_vocabs(bpe_train_source, bpe_train_dest, num_merges)
-
-         train_command = [ "shell/train_brief.sh",
-                          str(self.train_source),
-                          str(self.train_dest),
-                          str(source_vocab),
-                          str(dest_vocab),
-                          str(model_path),
-                          str(log_path)
-                         ]
-
-         training = subprocess.Popen(train_command, universal_newlines=True)
-         status = training.wait()
-         if status: raise RuntimeError("Training process with " + str(num_merges) + " merges failed with exit code " + str(status))
+         model_path = self.__train_brief(bpe_train_source, bpe_train_dest, source_vocab, dest_vocab, num_merges)
 
          score = self.score_nist(model_path, source_vocab, dest_vocab, bpe_dev_source, num_merges) 
          self.score_table = [ (num_merges, score) ]
@@ -307,10 +328,10 @@ class Experiment:
         else:
             space = [ (0, self.max_sequences[0]), (0, self.max_sequences[0]) ]
 
-        res = skopt.gp_minimize( self.vocab_rating,
+        res = skopt.gp_minimize( self.__vocab_rating,
                                  space,
                                  n_calls = 10,
-                                 random_state = 1,
+                                 random_state = self.seed,
                                  verbose = self.verbose)
         return res
 
