@@ -19,7 +19,7 @@ TST_SRC=$DATA/${SRC_LANG}.test
 
 let MAX_CODES=200000
 
-python3 preprocess.py --train $TRAIN_SRC $TRAIN_DST \
+python preprocess.py  --train $TRAIN_SRC $TRAIN_DST \
                       --langs $SRC_LANG $DST_LANG \
                       --num-sequences $MAX_CODES \
                       --write-dir $DATA \

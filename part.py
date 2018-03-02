@@ -1,4 +1,5 @@
 import xml.etree.ElementTree as ET
+import xml.dom.minidom
 import argparse
 import random
 
@@ -48,7 +49,15 @@ def write_xml(path, lines, root):
         segment = ET.SubElement(giant_paragraph, "seg")
         segment.text = lines[i].strip()
         segment.set("id", str(i + 1))
-    ET.ElementTree(root).write(path, encoding = "utf-8")
+
+    str_rep = xml.dom.minidom.parseString(ET.tostring(root, encoding="unicode")).toprettyxml(newl="\n", indent="")
+    str_rep = str_rep[ str_rep.find("\n") + 1 : ] #Hack to get rid of XML document declaration
+
+    #print(str_rep[:2000])
+    with open(path, "w", encoding="utf-8") as out:
+        out.write(str_rep)
+
+    #ET.ElementTree(root).write(path, encoding = "utf-8", short_empty_elements=False)
 
 def write_ref_xml(path, lines, setid, trglang):
     ref_root = ET.Element("refset")
