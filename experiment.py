@@ -3,6 +3,7 @@ import os
 import subprocess
 import argparse
 import skopt
+import numpy as np
 
 subword_nmt = os.path.join("/home/ualelm", "subword_fork")
 if subword_nmt not in sys.path:
@@ -41,7 +42,14 @@ def create_parser():
 
     return parser
 
-
+def convert_value(value):
+   """
+   Hack used to make the most import values in an OptimizeResult object JSON-writeable"
+   """
+   if type(value) == np.int32 or type(value) == np.int64: return int(value)
+   if type(value) == np.float32 or type(value) == np.float64: return float(value)
+   if type(value) == np.ndarray: return value.tolist()
+   return str(value)
 
 class Experiment:
 
@@ -270,31 +278,32 @@ class Experiment:
 
         epoch_size = 100000
         minibatch_size = 2**6
-        disp_freq = epoch_size // minibatch_size
+        disp_freq = epoch_size / minibatch_size // 100
 
         #print(bpe_train_source, bpe_train_dest, source_vocab, dest_vocab)
 
         marian_command = ["marian", 
                           #General options
                           "--workspace", str(8192),         #8192MB = 8GB (on the Pascal GPU, half the memory)
-                          "--log", str(log_path),
-                          "--quiet",
+                          "--log", str(log_path), "--quiet",
                           "--seed", str(self.seed),
                           #Model options
                           "--model", str(model_path),
                           "--type", "s2s",
-                          "--dim-emb", str(512),
-                          "--dim-rnn", str(1024),
-                          "--skip",
-                          "--layer-normalization",
-                          "--tied-embeddings",
+                          "--dim-emb", str(512), "--dim-rnn", str(1024),
+                          "--enc-cell", "lstm", "--enc-cell-depth",      str(2), "--enc-depth", str(4),
+                          "--dec-cell", "lstm", "--dec-cell-base-depth", str(4), "--dec-cell-high-depth", str(2), "--dec-depth", str(4),
+                          "--skip", "--layer-normalization", "--tied-embeddings",
+                          "--dropout-rnn", str(0.2), "--dropout-src", str(0.1), "--dropout-trg", str(0.1),
                           #Training options
                           "--train-sets", str(bpe_train_source), str(bpe_train_dest),
                           "--vocabs", str(source_vocab), str(dest_vocab),
+                          "--max-length", str(1000), "--max-length-crop",
                           "--after-epochs", str(3),
                           "--disp-freq", str(disp_freq),
                           "--device", str(0),
-                          "--mini-batch-fit", str(minibatch_size)
+                          "--mini-batch-fit",
+                          "--label-smoothing", str(0.1), "--exponential-smoothing"
                           ]
 
         training = subprocess.Popen(marian_command, universal_newlines=True)
@@ -337,9 +346,14 @@ class Experiment:
                                  verbose = self.verbose)
         return res
 
+
     def run_experiment(self):
         res = self.optimize_merges()
-        print(res)
+        if self.verbose: print(res)
+        with open("output.json", "w") as out:
+            json.dump(res, out, default=convert_value, indent = "    ")
+        return res 
+
 
 if __name__ == "__main__":
    parser = create_parser()
