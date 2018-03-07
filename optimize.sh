@@ -15,7 +15,7 @@ MOSES=/home/ualelm/mosesdecoder/scripts
 MARIAN=/home/ualelm/marian/build
 SCRIPTS=/home/ualelm/scripts
 PATH=$SCRIPTS:$MOSES/recaser:$MOSES/tokenizer:$MARIAN:$PATH
-echo "PATH =" $PATH
+#echo "PATH =" $PATH
 
 #python simple.py
 #exit 0

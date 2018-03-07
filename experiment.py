@@ -4,6 +4,7 @@ import subprocess
 import argparse
 import skopt
 import numpy as np
+import json
 
 subword_nmt = os.path.join("/home/ualelm", "subword_fork")
 if subword_nmt not in sys.path:
@@ -278,13 +279,13 @@ class Experiment:
 
         epoch_size = 100000
         minibatch_size = 2**6
-        disp_freq = epoch_size / minibatch_size // 100
+        disp_freq = int(epoch_size / minibatch_size // 100)
 
         #print(bpe_train_source, bpe_train_dest, source_vocab, dest_vocab)
 
         marian_command = ["marian", 
                           #General options
-                          "--workspace", str(8192),         #8192MB = 8GB (on the Pascal GPU, half the memory)
+                          "--workspace", str(8192),         #8192MB = 8GB 
                           "--log", str(log_path), "--quiet",
                           "--seed", str(self.seed),
                           #Model options
@@ -298,11 +299,11 @@ class Experiment:
                           #Training options
                           "--train-sets", str(bpe_train_source), str(bpe_train_dest),
                           "--vocabs", str(source_vocab), str(dest_vocab),
-                          "--max-length", str(1000), "--max-length-crop",
-                          "--after-epochs", str(3),
+                          "--max-length", str(50), "--max-length-crop",
+                          "--after-epochs", str(6),
                           "--disp-freq", str(disp_freq),
                           "--device", str(0),
-                          "--mini-batch-fit",
+                          "--mini-batch-fit", #str(32),
                           "--label-smoothing", str(0.1), "--exponential-smoothing"
                           ]
 
@@ -341,7 +342,7 @@ class Experiment:
 
         res = skopt.gp_minimize( self.__vocab_rating,
                                  space,
-                                 n_calls = 10,
+                                 n_calls = 20,
                                  random_state = self.seed,
                                  verbose = self.verbose)
         return res
