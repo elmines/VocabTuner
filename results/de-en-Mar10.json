@@ -1,0 +1,148 @@
+{
+    "x": [
+        66759,
+        37775
+    ],
+    "fun": 95.581,
+    "func_vals": [
+        95.581,
+        97.1221,
+        95.7045,
+        96.709,
+        95.8748,
+        95.7893,
+        95.8224,
+        95.8973,
+        95.8263,
+        96.5312,
+        100.0,
+        99.0643,
+        96.5713,
+        96.4554,
+        95.99680000000001,
+        95.9944,
+        99.0825,
+        96.7851,
+        96.1521,
+        95.6881
+    ],
+    "x_iters": [
+        [
+            66759,
+            37775
+        ],
+        [
+            8578,
+            40468
+        ],
+        [
+            15805,
+            16064
+        ],
+        [
+            25969,
+            27129
+        ],
+        [
+            62632,
+            34282
+        ],
+        [
+            20973,
+            21248
+        ],
+        [
+            29688,
+            9299
+        ],
+        [
+            35777,
+            37022
+        ],
+        [
+            30608,
+            17446
+        ],
+        [
+            62872,
+            31530
+        ],
+        [
+            0,
+            12592
+        ],
+        [
+            66947,
+            0
+        ],
+        [
+            48042,
+            40507
+        ],
+        [
+            66328,
+            40507
+        ],
+        [
+            20035,
+            9171
+        ],
+        [
+            35771,
+            10085
+        ],
+        [
+            27947,
+            0
+        ],
+        [
+            17259,
+            16567
+        ],
+        [
+            15667,
+            15856
+        ],
+        [
+            63927,
+            37705
+        ]
+    ],
+    "models": [
+        "GaussianProcessRegressor(alpha=1e-10, copy_X_train=True,\n             kernel=1**2 * Matern(length_scale=[1, 1], nu=2.5) + WhiteKernel(noise_level=1),\n             n_restarts_optimizer=2, noise='gaussian', normalize_y=True,\n             optimizer='fmin_l_bfgs_b', random_state=1791095845)",
+        "GaussianProcessRegressor(alpha=1e-10, copy_X_train=True,\n             kernel=1**2 * Matern(length_scale=[1, 1], nu=2.5) + WhiteKernel(noise_level=1),\n             n_restarts_optimizer=2, noise='gaussian', normalize_y=True,\n             optimizer='fmin_l_bfgs_b', random_state=1791095845)",
+        "GaussianProcessRegressor(alpha=1e-10, copy_X_train=True,\n             kernel=1**2 * Matern(length_scale=[1, 1], nu=2.5) + WhiteKernel(noise_level=1),\n             n_restarts_optimizer=2, noise='gaussian', normalize_y=True,\n             optimizer='fmin_l_bfgs_b', random_state=1791095845)",
+        "GaussianProcessRegressor(alpha=1e-10, copy_X_train=True,\n             kernel=1**2 * Matern(length_scale=[1, 1], nu=2.5) + WhiteKernel(noise_level=1),\n             n_restarts_optimizer=2, noise='gaussian', normalize_y=True,\n             optimizer='fmin_l_bfgs_b', random_state=1791095845)",
+        "GaussianProcessRegressor(alpha=1e-10, copy_X_train=True,\n             kernel=1**2 * Matern(length_scale=[1, 1], nu=2.5) + WhiteKernel(noise_level=1),\n             n_restarts_optimizer=2, noise='gaussian', normalize_y=True,\n             optimizer='fmin_l_bfgs_b', random_state=1791095845)",
+        "GaussianProcessRegressor(alpha=1e-10, copy_X_train=True,\n             kernel=1**2 * Matern(length_scale=[1, 1], nu=2.5) + WhiteKernel(noise_level=1),\n             n_restarts_optimizer=2, noise='gaussian', normalize_y=True,\n             optimizer='fmin_l_bfgs_b', random_state=1791095845)",
+        "GaussianProcessRegressor(alpha=1e-10, copy_X_train=True,\n             kernel=1**2 * Matern(length_scale=[1, 1], nu=2.5) + WhiteKernel(noise_level=1),\n             n_restarts_optimizer=2, noise='gaussian', normalize_y=True,\n             optimizer='fmin_l_bfgs_b', random_state=1791095845)",
+        "GaussianProcessRegressor(alpha=1e-10, copy_X_train=True,\n             kernel=1**2 * Matern(length_scale=[1, 1], nu=2.5) + WhiteKernel(noise_level=1),\n             n_restarts_optimizer=2, noise='gaussian', normalize_y=True,\n             optimizer='fmin_l_bfgs_b', random_state=1791095845)",
+        "GaussianProcessRegressor(alpha=1e-10, copy_X_train=True,\n             kernel=1**2 * Matern(length_scale=[1, 1], nu=2.5) + WhiteKernel(noise_level=1),\n             n_restarts_optimizer=2, noise='gaussian', normalize_y=True,\n             optimizer='fmin_l_bfgs_b', random_state=1791095845)",
+        "GaussianProcessRegressor(alpha=1e-10, copy_X_train=True,\n             kernel=1**2 * Matern(length_scale=[1, 1], nu=2.5) + WhiteKernel(noise_level=1),\n             n_restarts_optimizer=2, noise='gaussian', normalize_y=True,\n             optimizer='fmin_l_bfgs_b', random_state=1791095845)",
+        "GaussianProcessRegressor(alpha=1e-10, copy_X_train=True,\n             kernel=1**2 * Matern(length_scale=[1, 1], nu=2.5) + WhiteKernel(noise_level=1),\n             n_restarts_optimizer=2, noise='gaussian', normalize_y=True,\n             optimizer='fmin_l_bfgs_b', random_state=1791095845)"
+    ],
+    "space": "Space([Integer(low=0, high=66947),\n       Integer(low=0, high=40507)])",
+    "random_state": "<mtrand.RandomState object at 0x2b7e170e5438>",
+    "specs": {
+        "args": {
+            "n_jobs": 1,
+            "kappa": 1.96,
+            "xi": 0.01,
+            "n_restarts_optimizer": 5,
+            "n_points": 10000,
+            "callback": null,
+            "verbose": true,
+            "random_state": "<mtrand.RandomState object at 0x2b7e170e5438>",
+            "y0": null,
+            "x0": null,
+            "acq_optimizer": "auto",
+            "acq_func": "gp_hedge",
+            "n_random_starts": 10,
+            "n_calls": 20,
+            "base_estimator": "GaussianProcessRegressor(alpha=1e-10, copy_X_train=True,\n             kernel=1**2 * Matern(length_scale=[1, 1], nu=2.5),\n             n_restarts_optimizer=2, noise='gaussian', normalize_y=True,\n             optimizer='fmin_l_bfgs_b', random_state=1791095845)",
+            "dimensions": "Space([Integer(low=0, high=66947),\n       Integer(low=0, high=40507)])",
+            "func": "<bound method Experiment.__vocab_rating of <__main__.Experiment object at 0x2b7e170dd7b8>>"
+        },
+        "function": "base_minimize"
+    }
+}
