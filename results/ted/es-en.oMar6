@@ -1,0 +1,436 @@
+setting dmc scratch directory
+ 
+============================================================
+=====         Summary of your script job               =====
+============================================================
+  The script file is: asc.sh
+  The time limit is 56:00:00 HH:MM:SS.
+  The target directory is: /home/ualelm/VocabTuner
+  The working directory is:  /scratch-local/ualelm.TRAIN.152205
+  The memory limit is: 16gb
+  The job will start running after: 2018-03-04T21:36:05
+  Job Name: TRAIN
+  Virtual queue: gpu
+  QOS: --qos=gpu
+  Constraints: 
+  Using  1  cores on master node  dmc202
+  Node list:  dmc202
+  Nodes:  dmc202
+  Command typed:
+/apps/scripts/run_gpu asc.sh     
+  Queue submit command:
+sbatch --qos=gpu -J TRAIN --begin=2018-03-04T21:36:05 --requeue --mail-user=elmines@crimson.ua.edu -o TRAIN.o152205 -t 56:00:00 --gres=gpu:pascal:1 -N 1-1 -n 1 --mem-per-cpu=16000mb   
+ 
+Assigning GPU 0 to this job.
+Set model prefix as experiments/es-en/models/es-en.npz
+Set training log prefix as experiments/es-en/logs/es-en.log
+Set working directory as vocab directory.
+Set working directory as translation directory.
+Iteration No: 1 started. Evaluating function at random point.
+Wrote segmented training source corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.train.s51686
+Wrote segmented development corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.dev.s51686
+Wrote segmented training destination corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/en.train.s38067
+[2018-03-04 21:36:38] Creating vocabulary...
+[2018-03-04 21:36:40] Finished
+[2018-03-04 21:36:40] Creating vocabulary...
+[2018-03-04 21:36:41] Finished
+Wrote vocabulary file /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/source.s51686.vocab
+Wrote vocabulary files /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/dest.s38067.vocab
+Detokenizer Version $Revision: 4134 $
+Language: en
+Wrote translation /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/trans/en.s51686-38067.dev.sgm
+Extracting the NIST score
+Iteration No: 1 ended. Evaluation done at random point.
+Time taken: 8255.6530
+Function value obtained: 94.5022
+Current minimum: 94.5022
+Iteration No: 2 started. Evaluating function at random point.
+Wrote segmented training source corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.train.s6641
+Wrote segmented development corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.dev.s6641
+Wrote segmented training destination corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/en.train.s40781
+[2018-03-04 23:54:13] Creating vocabulary...
+[2018-03-04 23:54:14] Finished
+[2018-03-04 23:54:14] Creating vocabulary...
+[2018-03-04 23:54:15] Finished
+Wrote vocabulary file /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/source.s6641.vocab
+Wrote vocabulary files /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/dest.s40781.vocab
+Detokenizer Version $Revision: 4134 $
+Language: en
+Wrote translation /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/trans/en.s6641-40781.dev.sgm
+Extracting the NIST score
+Iteration No: 2 ended. Evaluation done at random point.
+Time taken: 9478.9934
+Function value obtained: 94.7595
+Current minimum: 94.5022
+Iteration No: 3 started. Evaluating function at random point.
+Wrote segmented training source corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.train.s12237
+Wrote segmented development corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.dev.s12237
+Wrote segmented training destination corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/en.train.s16188
+[2018-03-05 02:32:11] Creating vocabulary...
+[2018-03-05 02:32:13] Finished
+[2018-03-05 02:32:13] Creating vocabulary...
+[2018-03-05 02:32:14] Finished
+Wrote vocabulary file /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/source.s12237.vocab
+Wrote vocabulary files /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/dest.s16188.vocab
+Detokenizer Version $Revision: 4134 $
+Language: en
+Wrote translation /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/trans/en.s12237-16188.dev.sgm
+Extracting the NIST score
+Iteration No: 3 ended. Evaluation done at random point.
+Time taken: 8001.7592
+Function value obtained: 96.0308
+Current minimum: 94.5022
+Iteration No: 4 started. Evaluating function at random point.
+Wrote segmented training source corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.train.s20106
+Wrote segmented development corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.dev.s20106
+Wrote segmented training destination corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/en.train.s27339
+[2018-03-05 04:45:33] Creating vocabulary...
+[2018-03-05 04:45:35] Finished
+[2018-03-05 04:45:35] Creating vocabulary...
+[2018-03-05 04:45:36] Finished
+Wrote vocabulary file /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/source.s20106.vocab
+Wrote vocabulary files /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/dest.s27339.vocab
+Detokenizer Version $Revision: 4134 $
+Language: en
+Wrote translation /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/trans/en.s20106-27339.dev.sgm
+Extracting the NIST score
+Iteration No: 4 ended. Evaluation done at random point.
+Time taken: 8257.2166
+Function value obtained: 95.4362
+Current minimum: 94.5022
+Iteration No: 5 started. Evaluating function at random point.
+Wrote segmented training source corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.train.s48491
+Wrote segmented development corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.dev.s48491
+Wrote segmented training destination corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/en.train.s34546
+[2018-03-05 07:03:11] Creating vocabulary...
+[2018-03-05 07:03:13] Finished
+[2018-03-05 07:03:13] Creating vocabulary...
+[2018-03-05 07:03:14] Finished
+Wrote vocabulary file /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/source.s48491.vocab
+Wrote vocabulary files /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/dest.s34546.vocab
+Detokenizer Version $Revision: 4134 $
+Language: en
+Wrote translation /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/trans/en.s48491-34546.dev.sgm
+Extracting the NIST score
+Iteration No: 5 ended. Evaluation done at random point.
+Time taken: 8077.1174
+Function value obtained: 95.1312
+Current minimum: 94.5022
+Iteration No: 6 started. Evaluating function at random point.
+Wrote segmented training source corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.train.s16238
+Wrote segmented development corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.dev.s16238
+Wrote segmented training destination corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/en.train.s21412
+[2018-03-05 09:17:48] Creating vocabulary...
+[2018-03-05 09:17:49] Finished
+[2018-03-05 09:17:49] Creating vocabulary...
+[2018-03-05 09:17:50] Finished
+Wrote vocabulary file /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/source.s16238.vocab
+Wrote vocabulary files /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/dest.s21412.vocab
+Detokenizer Version $Revision: 4134 $
+Language: en
+Wrote translation /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/trans/en.s16238-21412.dev.sgm
+Extracting the NIST score
+Iteration No: 6 ended. Evaluation done at random point.
+Time taken: 8820.2550
+Function value obtained: 94.6524
+Current minimum: 94.5022
+Iteration No: 7 started. Evaluating function at random point.
+Wrote segmented training source corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.train.s22985
+Wrote segmented development corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.dev.s22985
+Wrote segmented training destination corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/en.train.s9371
+[2018-03-05 11:44:50] Creating vocabulary...
+[2018-03-05 11:44:52] Finished
+[2018-03-05 11:44:52] Creating vocabulary...
+[2018-03-05 11:44:53] Finished
+Wrote vocabulary file /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/source.s22985.vocab
+Wrote vocabulary files /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/dest.s9371.vocab
+Detokenizer Version $Revision: 4134 $
+Language: en
+Wrote translation /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/trans/en.s22985-9371.dev.sgm
+Extracting the NIST score
+Iteration No: 7 ended. Evaluation done at random point.
+Time taken: 7364.7583
+Function value obtained: 94.6852
+Current minimum: 94.5022
+Iteration No: 8 started. Evaluating function at random point.
+Wrote segmented training source corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.train.s27700
+Wrote segmented development corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.dev.s27700
+Wrote segmented training destination corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/en.train.s37308
+[2018-03-05 13:47:33] Creating vocabulary...
+[2018-03-05 13:47:35] Finished
+[2018-03-05 13:47:35] Creating vocabulary...
+[2018-03-05 13:47:36] Finished
+Wrote vocabulary file /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/source.s27700.vocab
+Wrote vocabulary files /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/dest.s37308.vocab
+Detokenizer Version $Revision: 4134 $
+Language: en
+Wrote translation /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/trans/en.s27700-37308.dev.sgm
+Extracting the NIST score
+Iteration No: 8 ended. Evaluation done at random point.
+Time taken: 8479.3869
+Function value obtained: 94.5793
+Current minimum: 94.5022
+Iteration No: 9 started. Evaluating function at random point.
+Wrote segmented training source corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.train.s23698
+Wrote segmented development corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.dev.s23698
+Wrote segmented training destination corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/en.train.s17581
+[2018-03-05 16:08:53] Creating vocabulary...
+[2018-03-05 16:08:54] Finished
+[2018-03-05 16:08:54] Creating vocabulary...
+[2018-03-05 16:08:55] Finished
+Wrote vocabulary file /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/source.s23698.vocab
+Wrote vocabulary files /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/dest.s17581.vocab
+Detokenizer Version $Revision: 4134 $
+Language: en
+Wrote translation /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/trans/en.s23698-17581.dev.sgm
+Extracting the NIST score
+Iteration No: 9 ended. Evaluation done at random point.
+Time taken: 7775.0061
+Function value obtained: 95.7903
+Current minimum: 94.5022
+Iteration No: 10 started. Evaluating function at random point.
+Wrote segmented training source corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.train.s48677
+Wrote segmented development corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.dev.s48677
+Wrote segmented training destination corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/en.train.s31774
+[2018-03-05 18:18:28] Creating vocabulary...
+[2018-03-05 18:18:29] Finished
+[2018-03-05 18:18:29] Creating vocabulary...
+[2018-03-05 18:18:31] Finished
+Wrote vocabulary file /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/source.s48677.vocab
+Wrote vocabulary files /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/dest.s31774.vocab
+Detokenizer Version $Revision: 4134 $
+Language: en
+Wrote translation /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/trans/en.s48677-31774.dev.sgm
+Extracting the NIST score
+Iteration No: 10 ended. Evaluation done at random point.
+Time taken: 8032.0040
+Function value obtained: 95.2241
+Current minimum: 94.5022
+Iteration No: 11 started. Searching for the next optimal point.
+Wrote segmented training source corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.train.s27113
+Wrote segmented development corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.dev.s27113
+Wrote segmented training destination corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/en.train.s6329
+[2018-03-05 20:32:20] Creating vocabulary...
+[2018-03-05 20:32:21] Finished
+[2018-03-05 20:32:21] Creating vocabulary...
+[2018-03-05 20:32:22] Finished
+Wrote vocabulary file /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/source.s27113.vocab
+Wrote vocabulary files /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/dest.s6329.vocab
+Detokenizer Version $Revision: 4134 $
+Language: en
+Wrote translation /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/trans/en.s27113-6329.dev.sgm
+Extracting the NIST score
+Iteration No: 11 ended. Search finished for the next optimal point.
+Time taken: 7253.0437
+Function value obtained: 95.4110
+Current minimum: 94.5022
+Iteration No: 12 started. Searching for the next optimal point.
+Wrote segmented training source corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.train.s0
+Wrote segmented development corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.dev.s0
+Wrote segmented training destination corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/en.train.s38432
+[2018-03-05 22:33:09] Creating vocabulary...
+[2018-03-05 22:33:11] Finished
+[2018-03-05 22:33:11] Creating vocabulary...
+[2018-03-05 22:33:13] Finished
+Wrote vocabulary file /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/source.s0.vocab
+Wrote vocabulary files /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/dest.s38432.vocab
+Detokenizer Version $Revision: 4134 $
+Language: en
+Wrote translation /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/trans/en.s0-38432.dev.sgm
+Extracting the NIST score
+Iteration No: 12 ended. Search finished for the next optimal point.
+Time taken: 13732.3980
+Function value obtained: 96.4067
+Current minimum: 94.5022
+Iteration No: 13 started. Searching for the next optimal point.
+Wrote segmented training source corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.train.s51832
+Wrote segmented development corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.dev.s51832
+Wrote segmented training destination corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/en.train.s29659
+[2018-03-06 02:22:06] Creating vocabulary...
+[2018-03-06 02:22:08] Finished
+[2018-03-06 02:22:08] Creating vocabulary...
+[2018-03-06 02:22:09] Finished
+Wrote vocabulary file /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/source.s51832.vocab
+Wrote vocabulary files /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/dest.s29659.vocab
+Detokenizer Version $Revision: 4134 $
+Language: en
+Wrote translation /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/trans/en.s51832-29659.dev.sgm
+Extracting the NIST score
+Iteration No: 13 ended. Search finished for the next optimal point.
+Time taken: 7925.6394
+Function value obtained: 94.3877
+Current minimum: 94.3877
+Iteration No: 14 started. Searching for the next optimal point.
+Wrote segmented training source corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.train.s28297
+Wrote segmented development corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.dev.s28297
+Wrote segmented training destination corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/en.train.s27837
+[2018-03-06 04:34:10] Creating vocabulary...
+[2018-03-06 04:34:12] Finished
+[2018-03-06 04:34:12] Creating vocabulary...
+[2018-03-06 04:34:13] Finished
+Wrote vocabulary file /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/source.s28297.vocab
+Wrote vocabulary files /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/dest.s27837.vocab
+Detokenizer Version $Revision: 4134 $
+Language: en
+Wrote translation /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/trans/en.s28297-27837.dev.sgm
+Extracting the NIST score
+Iteration No: 14 ended. Search finished for the next optimal point.
+Time taken: 8110.4112
+Function value obtained: 95.0327
+Current minimum: 94.3877
+Iteration No: 15 started. Searching for the next optimal point.
+Wrote segmented training source corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.train.s22481
+Wrote segmented development corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.dev.s22481
+Wrote segmented training destination corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/en.train.s3575
+[2018-03-06 06:49:21] Creating vocabulary...
+[2018-03-06 06:49:23] Finished
+[2018-03-06 06:49:23] Creating vocabulary...
+[2018-03-06 06:49:24] Finished
+Wrote vocabulary file /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/source.s22481.vocab
+Wrote vocabulary files /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/dest.s3575.vocab
+Detokenizer Version $Revision: 4134 $
+Language: en
+Wrote translation /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/trans/en.s22481-3575.dev.sgm
+Extracting the NIST score
+Iteration No: 15 ended. Search finished for the next optimal point.
+Time taken: 7195.8201
+Function value obtained: 94.4918
+Current minimum: 94.3877
+Iteration No: 16 started. Searching for the next optimal point.
+Wrote segmented training source corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.train.s51832
+Wrote segmented development corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.dev.s51832
+Wrote segmented training destination corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/en.train.s25378
+[2018-03-06 08:49:17] Creating vocabulary...
+[2018-03-06 08:49:19] Finished
+[2018-03-06 08:49:19] Creating vocabulary...
+[2018-03-06 08:49:20] Finished
+Wrote vocabulary file /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/source.s51832.vocab
+Wrote vocabulary files /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/dest.s25378.vocab
+Detokenizer Version $Revision: 4134 $
+Language: en
+Wrote translation /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/trans/en.s51832-25378.dev.sgm
+Extracting the NIST score
+Iteration No: 16 ended. Search finished for the next optimal point.
+Time taken: 7817.7569
+Function value obtained: 94.6180
+Current minimum: 94.3877
+Iteration No: 17 started. Searching for the next optimal point.
+Wrote segmented training source corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.train.s51832
+Wrote segmented development corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.dev.s51832
+Wrote segmented training destination corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/en.train.s36998
+[2018-03-06 10:59:35] Creating vocabulary...
+[2018-03-06 10:59:36] Finished
+[2018-03-06 10:59:36] Creating vocabulary...
+[2018-03-06 10:59:38] Finished
+Wrote vocabulary file /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/source.s51832.vocab
+Wrote vocabulary files /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/dest.s36998.vocab
+Detokenizer Version $Revision: 4134 $
+Language: en
+Wrote translation /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/trans/en.s51832-36998.dev.sgm
+Extracting the NIST score
+Iteration No: 17 ended. Search finished for the next optimal point.
+Time taken: 8223.8585
+Function value obtained: 95.4454
+Current minimum: 94.3877
+Iteration No: 18 started. Searching for the next optimal point.
+Wrote segmented training source corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.train.s51829
+Wrote segmented development corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.dev.s51829
+Wrote segmented training destination corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/en.train.s319
+[2018-03-06 13:16:38] Creating vocabulary...
+[2018-03-06 13:16:39] Finished
+[2018-03-06 13:16:39] Creating vocabulary...
+[2018-03-06 13:16:41] Finished
+Wrote vocabulary file /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/source.s51829.vocab
+Wrote vocabulary files /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/dest.s319.vocab
+Detokenizer Version $Revision: 4134 $
+Language: en
+Wrote translation /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/trans/en.s51829-319.dev.sgm
+Extracting the NIST score
+Iteration No: 18 ended. Search finished for the next optimal point.
+Time taken: 8278.9049
+Function value obtained: 97.1686
+Current minimum: 94.3877
+Iteration No: 19 started. Searching for the next optimal point.
+Wrote segmented training source corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.train.s51040
+Wrote segmented development corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.dev.s51040
+Wrote segmented training destination corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/en.train.s29022
+[2018-03-06 15:34:37] Creating vocabulary...
+[2018-03-06 15:34:39] Finished
+[2018-03-06 15:34:39] Creating vocabulary...
+[2018-03-06 15:34:40] Finished
+Wrote vocabulary file /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/source.s51040.vocab
+Wrote vocabulary files /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/dest.s29022.vocab
+Detokenizer Version $Revision: 4134 $
+Language: en
+Wrote translation /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/trans/en.s51040-29022.dev.sgm
+Extracting the NIST score
+Iteration No: 19 ended. Search finished for the next optimal point.
+Time taken: 7974.4492
+Function value obtained: 95.0178
+Current minimum: 94.3877
+Iteration No: 20 started. Searching for the next optimal point.
+Wrote segmented training source corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.train.s22655
+Wrote segmented development corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/es.dev.s22655
+Wrote segmented training destination corpus to /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/data/en.train.s325
+[2018-03-06 17:47:31] Creating vocabulary...
+[2018-03-06 17:47:32] Finished
+[2018-03-06 17:47:32] Creating vocabulary...
+[2018-03-06 17:47:34] Finished
+Wrote vocabulary file /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/source.s22655.vocab
+Wrote vocabulary files /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/vocab/dest.s325.vocab
+Detokenizer Version $Revision: 4134 $
+Language: en
+Wrote translation /mnt/homeapps/home/ualelm/VocabTuner/experiments/es-en/trans/en.s22655-325.dev.sgm
+Extracting the NIST score
+Iteration No: 20 ended. Search finished for the next optimal point.
+Time taken: 8356.7538
+Function value obtained: 95.1961
+Current minimum: 94.3877
+          fun: 94.3877
+    func_vals: array([94.5022, 94.7595, 96.0308, 95.4362, 95.1312, 94.6524, 94.6852,
+       94.5793, 95.7903, 95.2241, 95.411 , 96.4067, 94.3877, 95.0327,
+       94.4918, 94.618 , 95.4454, 97.1686, 95.0178, 95.1961])
+       models: [GaussianProcessRegressor(alpha=1e-10, copy_X_train=True,
+             kernel=1**2 * Matern(length_scale=[1, 1], nu=2.5) + WhiteKernel(noise_level=1),
+             n_restarts_optimizer=2, noise='gaussian', normalize_y=True,
+             optimizer='fmin_l_bfgs_b', random_state=1791095845), GaussianProcessRegressor(alpha=1e-10, copy_X_train=True,
+             kernel=1**2 * Matern(length_scale=[1, 1], nu=2.5) + WhiteKernel(noise_level=1),
+             n_restarts_optimizer=2, noise='gaussian', normalize_y=True,
+             optimizer='fmin_l_bfgs_b', random_state=1791095845), GaussianProcessRegressor(alpha=1e-10, copy_X_train=True,
+             kernel=1**2 * Matern(length_scale=[1, 1], nu=2.5) + WhiteKernel(noise_level=1),
+             n_restarts_optimizer=2, noise='gaussian', normalize_y=True,
+             optimizer='fmin_l_bfgs_b', random_state=1791095845), GaussianProcessRegressor(alpha=1e-10, copy_X_train=True,
+             kernel=1**2 * Matern(length_scale=[1, 1], nu=2.5) + WhiteKernel(noise_level=1),
+             n_restarts_optimizer=2, noise='gaussian', normalize_y=True,
+             optimizer='fmin_l_bfgs_b', random_state=1791095845), GaussianProcessRegressor(alpha=1e-10, copy_X_train=True,
+             kernel=1**2 * Matern(length_scale=[1, 1], nu=2.5) + WhiteKernel(noise_level=1),
+             n_restarts_optimizer=2, noise='gaussian', normalize_y=True,
+             optimizer='fmin_l_bfgs_b', random_state=1791095845), GaussianProcessRegressor(alpha=1e-10, copy_X_train=True,
+             kernel=1**2 * Matern(length_scale=[1, 1], nu=2.5) + WhiteKernel(noise_level=1),
+             n_restarts_optimizer=2, noise='gaussian', normalize_y=True,
+             optimizer='fmin_l_bfgs_b', random_state=1791095845), GaussianProcessRegressor(alpha=1e-10, copy_X_train=True,
+             kernel=1**2 * Matern(length_scale=[1, 1], nu=2.5) + WhiteKernel(noise_level=1),
+             n_restarts_optimizer=2, noise='gaussian', normalize_y=True,
+             optimizer='fmin_l_bfgs_b', random_state=1791095845), GaussianProcessRegressor(alpha=1e-10, copy_X_train=True,
+             kernel=1**2 * Matern(length_scale=[1, 1], nu=2.5) + WhiteKernel(noise_level=1),
+             n_restarts_optimizer=2, noise='gaussian', normalize_y=True,
+             optimizer='fmin_l_bfgs_b', random_state=1791095845), GaussianProcessRegressor(alpha=1e-10, copy_X_train=True,
+             kernel=1**2 * Matern(length_scale=[1, 1], nu=2.5) + WhiteKernel(noise_level=1),
+             n_restarts_optimizer=2, noise='gaussian', normalize_y=True,
+             optimizer='fmin_l_bfgs_b', random_state=1791095845), GaussianProcessRegressor(alpha=1e-10, copy_X_train=True,
+             kernel=1**2 * Matern(length_scale=[1, 1], nu=2.5) + WhiteKernel(noise_level=1),
+             n_restarts_optimizer=2, noise='gaussian', normalize_y=True,
+             optimizer='fmin_l_bfgs_b', random_state=1791095845), GaussianProcessRegressor(alpha=1e-10, copy_X_train=True,
+             kernel=1**2 * Matern(length_scale=[1, 1], nu=2.5) + WhiteKernel(noise_level=1),
+             n_restarts_optimizer=2, noise='gaussian', normalize_y=True,
+             optimizer='fmin_l_bfgs_b', random_state=1791095845)]
+ random_state: <mtrand.RandomState object at 0x2aea8a43c510>
+        space: Space([Integer(low=0, high=51832),
+       Integer(low=0, high=40820)])
+        specs: {'args': {'n_jobs': 1, 'kappa': 1.96, 'xi': 0.01, 'n_restarts_optimizer': 5, 'n_points': 10000, 'callback': None, 'verbose': True, 'random_state': <mtrand.RandomState object at 0x2aea8a43c510>, 'y0': None, 'x0': None, 'acq_optimizer': 'auto', 'acq_func': 'gp_hedge', 'n_random_starts': 10, 'n_calls': 20, 'base_estimator': GaussianProcessRegressor(alpha=1e-10, copy_X_train=True,
+             kernel=1**2 * Matern(length_scale=[1, 1], nu=2.5),
+             n_restarts_optimizer=2, noise='gaussian', normalize_y=True,
+             optimizer='fmin_l_bfgs_b', random_state=1791095845), 'dimensions': Space([Integer(low=0, high=51832),
+       Integer(low=0, high=40820)]), 'func': <bound method Experiment.__vocab_rating of <__main__.Experiment object at 0x2aea8a434710>>}, 'function': 'base_minimize'}
+            x: [51832, 29659]
+      x_iters: [[51686, 38067], [6641, 40781], [12237, 16188], [20106, 27339], [48491, 34546], [16238, 21412], [22985, 9371], [27700, 37308], [23698, 17581], [48677, 31774], [27113, 6329], [0, 38432], [51832, 29659], [28297, 27837], [22481, 3575], [51832, 25378], [51832, 36998], [51829, 319], [51040, 29022], [22655, 325]]
