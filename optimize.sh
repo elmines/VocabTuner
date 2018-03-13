@@ -42,6 +42,8 @@ TST_DST=$DATA/${DST_LANG}-ref.test.sgml
 TST_SRC_PLAIN=$DATA/${SRC_LANG}.test
 #echo $TST_SRC $TST_DST $TST_SRC_PLAIN
 
+RESULTS=${SRC_LANG}-${DST_LANG}.json
+
 SRC_CODES=$DATA/${SRC_LANG}.codes
 DST_CODES=$DATA/${DST_LANG}.codes
 #echo $SRC_CODES $DST_CODES
@@ -58,6 +60,7 @@ python experiment.py \
                         --train            $TRAIN_SRC $TRAIN_DST                \
                         --dev              $DEV_SRC   $DEV_DST   $DEV_SRC_PLAIN \
                         --test             $TST_SRC   $TST_DST   $TST_SRC_PLAIN \
+                        --results          $RESULTS                             \
                         --dest-lang        $DST_LANG                            \
                         --codes            $SRC_CODES $DST_CODES                \
                         --max-sequences    $SRC_MERGES $DST_MERGES              \

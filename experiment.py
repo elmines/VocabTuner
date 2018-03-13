@@ -26,6 +26,8 @@ def create_parser():
     parser.add_argument("--dev", required=True, nargs=3, metavar=("<src_sgml>", "<ref_sgml>", "<src_plain>"), type=os.path.abspath, help="Development corpora, with the source in both SGML and plain text.")
     parser.add_argument("--test", required=True, nargs=3, metavar=("<src_sgml>", "<ref_sgml>", "<src_plain>"), type=os.path.abspath, help="Test corpora, with the source in both SGML and plain text.")
 
+    parser.add_argument("--results", "-r", default="output.json", metavar="<json_path>", type=os.path.abspath, help="Path to write experimental results in JSON format")
+
     parser.add_argument("--dest-lang", "-l", required=True, metavar="xx", type=str, help="ISO 2-char language code for target language")
 
     parser.add_argument("--codes", required=True, nargs="+", metavar="<codes_path>", type=os.path.abspath, help="BPE codes file(s) (pass in only one if using joint codes)")
@@ -89,6 +91,7 @@ class Experiment:
     def __init__(self, codes,
                        train_source, train_dest,
                        dev_source, dev_dest, dev_source_preproc,
+                       results = os.path.abspath("output.json"),
                        max_sequences = max_sequences_DEFAULT,
                        dest_lang = "en",
                        model_prefix = None, train_log_prefix = None, vocab_dir = working_directory(), translation_dir = working_directory(),
@@ -105,6 +108,8 @@ class Experiment:
         self.dev_source = os.path.abspath(dev_source)
         self.dev_dest = os.path.abspath(dev_dest)
         self.dev_source_preproc = os.path.abspath(dev_source_preproc)
+
+        self.results = results
 
         self.dest_lang = dest_lang
 
@@ -134,6 +139,9 @@ class Experiment:
         self.seed = 1 #FIXME: Make this customizable by the user
 
         self.score_table = []
+
+        self.results = results
+        if self.verbose: print("Will write results to %s" % str(self.results))
 
     def __already_used(self, num_merges):
        i = 0
@@ -351,7 +359,7 @@ class Experiment:
     def run_experiment(self):
         res = self.optimize_merges()
         if self.verbose: print(res)
-        with open("output.json", "w") as out:
+        with open(self.results, "w") as out:
             json.dump(res, out, default=convert_value, indent = "    ")
         return res 
 
@@ -363,6 +371,7 @@ if __name__ == "__main__":
    exp = Experiment(  args.codes, 
                       args.train[0], args.train[1],
                       args.dev[0], args.dev[1], args.dev[2],
+                      results = args.results,
                       dest_lang = args.dest_lang,
                       max_sequences = args.max_sequences,
                       model_prefix = args.model_prefix, train_log_prefix = args.train_log_prefix, vocab_dir = args.vocab_dir, translation_dir = args.translation_dir,
