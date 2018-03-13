@@ -1,4 +1,5 @@
 import matplotlib
+matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
@@ -8,6 +9,7 @@ import os
 import argparse
 
 import numpy as np
+
 
 def create_parser():
     parser = argparse.ArgumentParser(description="Plot results of BPE-optimization experiment")
@@ -34,6 +36,7 @@ def graph_points(json_file, source_lang="xx", dest_lang="xx"):
     dest_merges = dest_merges[ind]
     scores = scores[ind]
 
+
     fig = plt.figure()
 
     axes = plt.axes(projection="3d")
@@ -43,6 +46,7 @@ def graph_points(json_file, source_lang="xx", dest_lang="xx"):
     axes.set_zlabel("BLEU")
 
     axes.scatter3D( source_merges, dest_merges, scores, c=scores, cmap= "Greens")
+
     plt.show()
 
 def practicing():
