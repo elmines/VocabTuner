@@ -36,16 +36,30 @@ def graph_points(json_file, source_lang="xx", dest_lang="xx"):
     dest_merges = dest_merges[ind]
     scores = scores[ind]
 
+    #matplotlib.rcParams["lines.markersize"] = 30.0
+    min_marker_size = 6.0
+    max_marker_size = 1000.0
 
+    #marker_sizes = np.ndarray(shape=(len(source_merges),), dtype=source_merges.dtype)
+
+   
+
+    marker_sizes = np.asarray([min_marker_size + ( (max_marker_size - min_marker_size) * (score - min(scores)) / (max(scores) - min(scores)) ) for score in scores])
+    #print(marker_sizes)
     fig = plt.figure()
 
-    axes = plt.axes(projection="3d")
+    axes = plt.axes()
+    #axes = plt.axes(projection="3d")
     axes.set_title("%s-->%s" % (source_lang, dest_lang))
     axes.set_xlabel(source_lang)
     axes.set_ylabel(dest_lang)
-    axes.set_zlabel("BLEU")
+    #axes.set_zlabel("BLEU")
 
-    axes.scatter3D( source_merges, dest_merges, scores, c=scores, cmap= "Greens")
+    axes.scatter( source_merges, dest_merges,
+                  edgecolors = "black",
+                  s = marker_sizes
+                  #, s = scores)
+    )
 
     plt.show()
 
