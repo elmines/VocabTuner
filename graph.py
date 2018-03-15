@@ -13,7 +13,7 @@ import numpy as np
 
 def create_parser():
     parser = argparse.ArgumentParser(description="Plot results of BPE-optimization experiment")
-    parser.add_argument("--input", "-i", required=True, metavar="<path>", type=argparse.FileType("r"), help="JSON file containing OptimizeResult object written as a dict") 
+    parser.add_argument("--input", "-i", nargs="+", metavar="<path>", type=argparse.FileType("r"), help="1 to 2 JSON files containing an OptimizeResult object written as a dict") 
     parser.add_argument("--langs", "-l", nargs=2, default=("xx", "xx"), help="Source and Destination languages")
 
     return parser
@@ -31,7 +31,7 @@ def log_marker_sizes(scores, min_marker_size, max_marker_size):
     return marker_sizes
 
 
-def graph_points(json_file, source_lang="xx", dest_lang="xx"):
+def __scatter(json_file, axes, color):
     with open(json_file, "r") as f:
         res = json.load(f)
 
@@ -55,20 +55,31 @@ def graph_points(json_file, source_lang="xx", dest_lang="xx"):
     max_marker_size = 1000.0
     marker_sizes = log_marker_sizes(scores, min_marker_size, max_marker_size)
 
-    fig = plt.figure()
-    axes = plt.axes()
-    axes.set_title("%s-->%s" % (source_lang, dest_lang))
-    axes.set_xlabel(source_lang)
-    axes.set_ylabel(dest_lang)
-
     axes.scatter( source_merges, dest_merges,
+                  c = color,
                   edgecolors = "black",
                   s = marker_sizes
     )
 
+
+def graph_results(json_files, source_lang="xx", dest_lang="xx"):
+    fig = plt.figure()
+    axes = plt.axes()
+
+    title = source_lang + "-->" + dest_lang if len(json_files) == 1 else source_lang + "<-->" + dest_lang
+    axes.set_title(title)
+    axes.set_xlabel(source_lang)
+    axes.set_ylabel(dest_lang)
+
+    __scatter(json_files[0], axes, "blue")
+    if len(json_files) > 1: __scatter(json_files[1], axes, "red")
+
     plt.show()
+   
 
 if __name__ == "__main__":
     parser = create_parser()
     args = parser.parse_args()
-    graph_points(  args.input.name, args.langs[0], args.langs[1] )
+
+    files = (args.input[0].name,) if len(args.input) == 1 else (args.input[0].name, args.input[1].name) 
+    graph_results( files, args.langs[0], args.langs[1] )
