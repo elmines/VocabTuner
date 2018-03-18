@@ -10,6 +10,11 @@ import argparse
 
 import numpy as np
 
+def COLOR_A():
+    return "blue"
+
+def COLOR_B():
+    return "red"
 
 def create_parser():
     parser = argparse.ArgumentParser(description="Plot results of BPE-optimization experiment")
@@ -31,7 +36,7 @@ def log_marker_sizes(scores, min_marker_size, max_marker_size):
     return marker_sizes
 
 
-def __scatter(json_file, axes, color):
+def __scatter(json_file, axes, color, source_lang, dest_lang):
     with open(json_file, "r") as f:
         res = json.load(f)
 
@@ -55,25 +60,70 @@ def __scatter(json_file, axes, color):
     max_marker_size = 1000.0
     marker_sizes = log_marker_sizes(scores, min_marker_size, max_marker_size)
 
-    axes.scatter( source_merges, dest_merges,
+
+    axes.scatter( source_merges[:-1], dest_merges[:-1],
                   c = color,
                   edgecolors = "black",
-                  s = marker_sizes
+                  s = marker_sizes[:-1],
+                  label = source_lang + " to " + dest_lang
     )
 
 
+    #print(matplotlib.rcParams)
+
+    
+    axes.scatter( source_merges[-1], dest_merges[-1],
+                  c = color,
+                  edgecolors = "black",
+                  s = marker_sizes[-1],
+                  marker = "*",
+                  linewidths = matplotlib.rcParams["lines.linewidth"] * 2,
+                  label = "Best " + source_lang + " to " + dest_lang
+    )
+
+def gen_legend_handles(source_lang, dest_lang, bidir=False):
+    
+    handles = []
+    handles.append( matplotlib.patches.Patch(color=COLOR_A(), label = source_lang + " to " + dest_lang) )
+    if bidir:
+        handles.append( matplotlib.patches.Patch(color=COLOR_B(), label = dest_lang + " to " + source_lang) )
+
+    handles.append(plt.scatter([], [], label="Best pair",
+                  c = "white",
+                  edgecolors = "black",
+                  s = 500.0,  
+                  marker="*"
+                  #linewidths = matplotlib.rcParams["lines.linewidth"] * 2
+                  )
+    )
+
+    return handles
+    
 def graph_results(json_files, source_lang="xx", dest_lang="xx"):
+
+
     fig = plt.figure()
-    axes = plt.axes()
+    axes = plt.subplot(1, 1, 1)
 
-    title = source_lang + "-->" + dest_lang if len(json_files) == 1 else source_lang + "<-->" + dest_lang
+    #title = source_lang + "-->" + dest_lang if len(json_files) == 1 else source_lang + "<-->" + dest_lang
+    title = source_lang + " and " + dest_lang
     axes.set_title(title)
-    axes.set_xlabel(source_lang)
-    axes.set_ylabel(dest_lang)
+    axes.set_xlabel(source_lang + " BPE merges")
+    axes.set_ylabel(dest_lang + " BPE merges")
 
-    __scatter(json_files[0], axes, "blue")
-    if len(json_files) > 1: __scatter(json_files[1], axes, "red")
+    __scatter(json_files[0], axes, COLOR_A(), source_lang, dest_lang)
+    if len(json_files) > 1:
+        __scatter(json_files[1], axes, COLOR_B(), dest_lang, source_lang)
 
+    handles = gen_legend_handles(source_lang, dest_lang, len(json_files) > 1)
+
+    #plt.legend(source_lang + " merges", dest_lang + " merges")
+
+    axes.legend(handles = handles, loc = 3,
+               bbox_to_anchor=(0.0, -0.15, 1.0, .102),
+               ncol = len(handles),
+               mode = "expand"
+    )
     plt.show()
    
 
