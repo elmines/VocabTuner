@@ -10,6 +10,15 @@ import argparse
 
 import numpy as np
 
+def SUP_TITLE_FONT():
+    return 32
+
+def SUB_TITLE_FONT():
+    return SUP_TITLE_FONT() / 2
+
+def MINOR_FONT():
+    return 32
+
 def COLOR_A():
     return "blue"
 
@@ -86,12 +95,12 @@ def __scatter(json_file, axes, color, source_lang, dest_lang):
 def gen_legend_handles(source_lang, dest_lang, bidir=False):
     
     handles = []
-    handles.append( matplotlib.patches.Patch(color=COLOR_A(), label = source_lang + " to " + dest_lang) )
     if bidir:
+        handles.append( matplotlib.patches.Patch(color=COLOR_A(), label = source_lang + " to " + dest_lang) )
         handles.append( matplotlib.patches.Patch(color=COLOR_B(), label = dest_lang + " to " + source_lang) )
 
     handles.append(plt.scatter([], [], label="Best pair",
-                  c = "white",
+                  c = "white" if bidir else COLOR_A(),
                   edgecolors = "black",
                   s = 500.0,  
                   marker="*"
@@ -103,8 +112,11 @@ def gen_legend_handles(source_lang, dest_lang, bidir=False):
     
 def graph_results(json_files, axes, source_lang="xx", dest_lang="xx"):
 
-    title = source_lang + " and " + dest_lang
-    axes.set_title(title)
+    if len(json_files) > 1:
+        title = source_lang + " and " + dest_lang + ", Both Ways"
+    else:
+        title = source_lang + " to " + dest_lang
+    axes.set_title(title, fontsize = SUB_TITLE_FONT())
     axes.set_xlabel(source_lang + " BPE merges")
     axes.set_ylabel(dest_lang + " BPE merges")
 
@@ -116,8 +128,8 @@ def graph_results(json_files, axes, source_lang="xx", dest_lang="xx"):
 
 
     axes.legend(handles = handles, loc = 3,
-               bbox_to_anchor=(0.0, -0.15, 1.0, .102),
-               ncol = len(handles),
+               bbox_to_anchor=(0.0, -0.30, 1.0, .102),
+               ncol = 2,
                mode = "expand"
     )
     #plt.show()
@@ -151,29 +163,16 @@ def check_indices(indices):
 if __name__ == "__main__":
     parser = create_parser()
     args = parser.parse_args()
-
-    if args.indices:
-        indices = args.indices
-    else:
-        indices = [ i + 1 for i in range(len(args.input)) ]
-
+    indices = args.indices if args.indices else [ i + 1 for i in range(len(args.input)) ]
     check_lengths(args.input, args.langs, indices)
 
-    first_lang_pair = args.langs[0].split("-")
-
-    #files = (args.input[0].name,) if len(args.input) == 1 else (args.input[0].name, args.input[1].name) 
-    #graph_results( files, first_lang_pair[0], first_lang_pair[1])
-
-    #for json_file in args.input:
-    fig = plt.figure( #figsize = (12, 12),
+    fig = plt.figure( figsize = (12, 12),
                       dpi=128
     )
-    fig.suptitle("BLEU Translation Scores by Size")
+    fig.suptitle("BLEU Translation Scores by Size", fontsize = SUP_TITLE_FONT())
 
-    #nrows = indices[-1]
     ncols = 2
     nrows = indices[-1] // ncols if (indices[-1] % ncols == 0) else (indices[-1] // ncols + indices[-1] % ncols)
-
 
     i = 0
     last_index = -1
@@ -193,6 +192,6 @@ if __name__ == "__main__":
         i += 1
 
     #plt.tight_layout(pad = 1.08, h_pad = 1.08, w_pad = 1.08)
-    plt.subplots_adjust(wspace = 0.75, hspace = 0.75)
-    plt.savefig("test.svg")
-    plt.show()
+    plt.subplots_adjust(wspace = 0.5, hspace = 0.5)
+    plt.savefig("test.png")
+    #plt.show()
