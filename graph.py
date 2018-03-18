@@ -165,10 +165,16 @@ if __name__ == "__main__":
     #graph_results( files, first_lang_pair[0], first_lang_pair[1])
 
     #for json_file in args.input:
-    fig = plt.figure()
+    fig = plt.figure( #figsize = (12, 12),
+                      dpi=128
+    )
     fig.suptitle("BLEU Translation Scores by Size")
 
-    nrows = indices[-1]
+    #nrows = indices[-1]
+    ncols = 2
+    nrows = indices[-1] // ncols if (indices[-1] % ncols == 0) else (indices[-1] // ncols + indices[-1] % ncols)
+
+
     i = 0
     last_index = -1
     while i < len(args.input):
@@ -181,9 +187,12 @@ if __name__ == "__main__":
             file_set.append( args.input[i].name )
 
         #Generate new set of axes for new plot
-        if index != last_index: axes = plt.subplot(nrows, 1, index)
+        if index != last_index: axes = plt.subplot(nrows, ncols, index)
 
         graph_results(file_set, axes, lang_pair[0], lang_pair[1])
         i += 1
 
+    #plt.tight_layout(pad = 1.08, h_pad = 1.08, w_pad = 1.08)
+    plt.subplots_adjust(wspace = 0.75, hspace = 0.75)
+    plt.savefig("test.svg")
     plt.show()
