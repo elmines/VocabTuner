@@ -14,10 +14,17 @@ def SUP_TITLE_FONT():
     return 32
 
 def SUB_TITLE_FONT():
-    return SUP_TITLE_FONT() / 2
+    return SUP_TITLE_FONT() * 3 / 4
+    #return SUP_TITLE_FONT() * 3 / 4
 
 def MINOR_FONT():
-    return 32
+    return SUP_TITLE_FONT() * 5 / 8
+
+def TICK_FONT():
+    return SUP_TITLE_FONT() / 2
+
+def LEGEND_FONT():
+    return TICK_FONT()
 
 def COLOR_A():
     return "blue"
@@ -95,8 +102,8 @@ def __scatter(json_file, axes, color, source_lang, dest_lang):
 def gen_legend_handles(source_lang, dest_lang, bidir=False):
     
     handles = []
+    handles.append( matplotlib.patches.Patch(color=COLOR_A(), label = source_lang + " to " + dest_lang) )
     if bidir:
-        handles.append( matplotlib.patches.Patch(color=COLOR_A(), label = source_lang + " to " + dest_lang) )
         handles.append( matplotlib.patches.Patch(color=COLOR_B(), label = dest_lang + " to " + source_lang) )
 
     handles.append(plt.scatter([], [], label="Best pair",
@@ -117,8 +124,9 @@ def graph_results(json_files, axes, source_lang="xx", dest_lang="xx"):
     else:
         title = source_lang + " to " + dest_lang
     axes.set_title(title, fontsize = SUB_TITLE_FONT())
-    axes.set_xlabel(source_lang + " BPE merges")
-    axes.set_ylabel(dest_lang + " BPE merges")
+    axes.set_xlabel(source_lang + " BPE merges", fontsize=MINOR_FONT())
+    axes.set_ylabel(dest_lang + " BPE merges", fontsize=MINOR_FONT())
+    axes.tick_params(labelsize=TICK_FONT())
 
     __scatter(json_files[0], axes, COLOR_A(), source_lang, dest_lang)
     if len(json_files) > 1:
@@ -131,6 +139,7 @@ def graph_results(json_files, axes, source_lang="xx", dest_lang="xx"):
                bbox_to_anchor=(0.0, -0.30, 1.0, .102),
                ncol = 2,
                mode = "expand"
+               , fontsize=LEGEND_FONT()
     )
     #plt.show()
 
@@ -166,10 +175,11 @@ if __name__ == "__main__":
     indices = args.indices if args.indices else [ i + 1 for i in range(len(args.input)) ]
     check_lengths(args.input, args.langs, indices)
 
-    fig = plt.figure( figsize = (12, 12),
+    fig = plt.figure( figsize=(21.5, 17),
+                      #figsize = (12, 12),
                       dpi=128
     )
-    fig.suptitle("BLEU Translation Scores by Size", fontsize = SUP_TITLE_FONT())
+    fig.suptitle("BLEU Translation Scores by Size", fontsize = SUP_TITLE_FONT(), weight="bold")
 
     ncols = 2
     nrows = indices[-1] // ncols if (indices[-1] % ncols == 0) else (indices[-1] // ncols + indices[-1] % ncols)
@@ -192,6 +202,7 @@ if __name__ == "__main__":
         i += 1
 
     #plt.tight_layout(pad = 1.08, h_pad = 1.08, w_pad = 1.08)
-    plt.subplots_adjust(wspace = 0.5, hspace = 0.5)
+    plt.subplots_adjust(wspace = 0.3, hspace = 0.4)
+    plt.savefig("/mnt/c/Users/elmin/Downloads/test.png")
     plt.savefig("test.png")
     #plt.show()
