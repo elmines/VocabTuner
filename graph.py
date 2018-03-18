@@ -18,8 +18,11 @@ def COLOR_B():
 
 def create_parser():
     parser = argparse.ArgumentParser(description="Plot results of BPE-optimization experiment")
-    parser.add_argument("--input", "-i", nargs="+", metavar="<path>", type=argparse.FileType("r"), help="1 to 2 JSON files containing an OptimizeResult object written as a dict") 
-    parser.add_argument("--langs", "-l", nargs=2, default=("xx", "xx"), help="Source and Destination languages")
+    parser.add_argument("--input", "-i", nargs="+", required=True, metavar="<path>", type=argparse.FileType("r"), help="1 to 2 JSON files containing an OptimizeResult object written as a dict") 
+    parser.add_argument("--langs", "-l", nargs="+", default=["xx"], help="Source and Destination language pairs (format: <source>-<dest>)")
+
+    parser.add_argument("--input-indices", nargs="+", type=int)
+    parser.add_argument("--lang-indices", nargs="+", type=int)
 
     return parser
 
@@ -101,7 +104,6 @@ def gen_legend_handles(source_lang, dest_lang, bidir=False):
     
 def graph_results(json_files, source_lang="xx", dest_lang="xx"):
 
-
     fig = plt.figure()
     axes = plt.subplot(1, 1, 1)
 
@@ -127,9 +129,46 @@ def graph_results(json_files, source_lang="xx", dest_lang="xx"):
     plt.show()
    
 
+def ascending(items):
+    return items == sorted(items)
+
+def check_lengths(args):
+    lengths = [len(args.input), len(args.langs)]
+    if args.input_indices:
+       lengths.append( len(args.input_indices) )
+       lengths.append( len(args.lang_indices) )
+    first_len = lengths[0]
+    for length in lengths[1:]:
+       if first_len != length:
+          raise ValueError("--input, --langs, and --*-indices (if applicable) must have the same number of args")
+
+
 if __name__ == "__main__":
     parser = create_parser()
     args = parser.parse_args()
 
+
+
+    if args.lang_indices or args.input_indices:
+        if not( args.lang_indices and args.input_indices ):
+           raise ValueError("Must specify both --input-indices and --lang-indices")
+        if args.input_indices and not ascending(args.input_indices):
+           raise ValueError("--input-indices must be in ascending order")
+        if args.lang_indices and not ascending(args.lang_indices):
+           raise ValueError("--lang-indices must be in ascending order")
+        lang_indices = args.lang_indices
+        input_indices = args.input_indices
+    else:
+        input_indices = [ i + 1 for i in range(len(args.input))
+        lang_indices = input_indices
+
+    check_lengths(args)
+
+    first_lang_pair = args.langs[0].split("-")
+
     files = (args.input[0].name,) if len(args.input) == 1 else (args.input[0].name, args.input[1].name) 
-    graph_results( files, args.langs[0], args.langs[1] )
+    graph_results( files, first_lang_pair[0], first_lang_pair[1])
+
+    for json_file in args.input:
+        fig = plt.figure()
+        fig.suptitle("BLEU Translation Score by Size")
