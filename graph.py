@@ -18,11 +18,10 @@ def COLOR_B():
 
 def create_parser():
     parser = argparse.ArgumentParser(description="Plot results of BPE-optimization experiment")
-    parser.add_argument("--input", "-i", nargs="+", required=True, metavar="<path>", type=argparse.FileType("r"), help="1 to 2 JSON files containing an OptimizeResult object written as a dict") 
+    parser.add_argument("--input", "-i", nargs="+", required=True, metavar="<path>", type=argparse.FileType("r"), help="1+ JSON files containing an OptimizeResult object written as a dict") 
     parser.add_argument("--langs", "-l", nargs="+", default=["xx"], help="Source and Destination language pairs (format: <source>-<dest>)")
 
-    parser.add_argument("--input-indices", nargs="+", type=int)
-    parser.add_argument("--lang-indices", nargs="+", type=int)
+    parser.add_argument("--indices", nargs="+", type=int, help="Pyplot subplot indices (number of unique indices must equal len(--langs))")
 
     return parser
 
@@ -102,12 +101,8 @@ def gen_legend_handles(source_lang, dest_lang, bidir=False):
 
     return handles
     
-def graph_results(json_files, source_lang="xx", dest_lang="xx"):
+def graph_results(json_files, axes, source_lang="xx", dest_lang="xx"):
 
-    fig = plt.figure()
-    axes = plt.subplot(1, 1, 1)
-
-    #title = source_lang + "-->" + dest_lang if len(json_files) == 1 else source_lang + "<-->" + dest_lang
     title = source_lang + " and " + dest_lang
     axes.set_title(title)
     axes.set_xlabel(source_lang + " BPE merges")
@@ -119,56 +114,76 @@ def graph_results(json_files, source_lang="xx", dest_lang="xx"):
 
     handles = gen_legend_handles(source_lang, dest_lang, len(json_files) > 1)
 
-    #plt.legend(source_lang + " merges", dest_lang + " merges")
 
     axes.legend(handles = handles, loc = 3,
                bbox_to_anchor=(0.0, -0.15, 1.0, .102),
                ncol = len(handles),
                mode = "expand"
     )
-    plt.show()
-   
+    #plt.show()
+
 
 def ascending(items):
     return items == sorted(items)
 
-def check_lengths(args):
-    lengths = [len(args.input), len(args.langs)]
-    if args.input_indices:
-       lengths.append( len(args.input_indices) )
-       lengths.append( len(args.lang_indices) )
-    first_len = lengths[0]
-    for length in lengths[1:]:
-       if first_len != length:
-          raise ValueError("--input, --langs, and --*-indices (if applicable) must have the same number of args")
+def check_lengths(input, langs, indices):
+    #lengths = [len(args.input), len(args.langs)]
 
+    if len(input) != len(indices):
+        raise ValueError("--input and --indices must have the same number of args") 
+    elif len(args.langs) != len( set(indices) ):
+        raise ValueError("--langs must have as many arguments as there are unique --indices")
+
+    #first_len = lengths[0]
+    #for length in lengths[1:]:
+       #if first_len != length:
+          #raise ValueError("--input, --langs, and --indices (if applicable) must have the same number of args")
+
+def check_indices(indices):
+    if not ascending(args.indices):
+       raise ValueError("--indices must be in ascending order")
+    if indices[0] != 1:
+       raise ValueError("--indices must start at 1")
+    for i in range( min(indices), max(indices) + 1 ):
+        if i not in indices:
+            raise ValueError("--indices must have all indices in the interval [%d, %d]" % (min(indices), max(indices)) )
 
 if __name__ == "__main__":
     parser = create_parser()
     args = parser.parse_args()
 
-
-
-    if args.lang_indices or args.input_indices:
-        if not( args.lang_indices and args.input_indices ):
-           raise ValueError("Must specify both --input-indices and --lang-indices")
-        if args.input_indices and not ascending(args.input_indices):
-           raise ValueError("--input-indices must be in ascending order")
-        if args.lang_indices and not ascending(args.lang_indices):
-           raise ValueError("--lang-indices must be in ascending order")
-        lang_indices = args.lang_indices
-        input_indices = args.input_indices
+    if args.indices:
+        indices = args.indices
     else:
-        input_indices = [ i + 1 for i in range(len(args.input))
-        lang_indices = input_indices
+        indices = [ i + 1 for i in range(len(args.input)) ]
 
-    check_lengths(args)
+    check_lengths(args.input, args.langs, indices)
 
     first_lang_pair = args.langs[0].split("-")
 
-    files = (args.input[0].name,) if len(args.input) == 1 else (args.input[0].name, args.input[1].name) 
-    graph_results( files, first_lang_pair[0], first_lang_pair[1])
+    #files = (args.input[0].name,) if len(args.input) == 1 else (args.input[0].name, args.input[1].name) 
+    #graph_results( files, first_lang_pair[0], first_lang_pair[1])
 
-    for json_file in args.input:
-        fig = plt.figure()
-        fig.suptitle("BLEU Translation Score by Size")
+    #for json_file in args.input:
+    fig = plt.figure()
+    fig.suptitle("BLEU Translation Scores by Size")
+
+    nrows = indices[-1]
+    i = 0
+    last_index = -1
+    while i < len(args.input):
+        file_set = [args.input[i].name]
+        index = indices[i]
+        lang_pair = args.langs[index - 1].split("-")
+
+        while (i + 1 < len(args.input)) and (indices[i + 1] == index) :
+            i += 1 
+            file_set.append( args.input[i].name )
+
+        #Generate new set of axes for new plot
+        if index != last_index: axes = plt.subplot(nrows, 1, index)
+
+        graph_results(file_set, axes, lang_pair[0], lang_pair[1])
+        i += 1
+
+    plt.show()
