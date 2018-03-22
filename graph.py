@@ -10,6 +10,10 @@ import argparse
 
 import numpy as np
 
+#print(matplotlib.rcParams)
+#matplotlib.rcParams["font.family"] = "sans-serif"
+#matplotlib.rcParams[ "font." + matplotlib.rcParams["font.family"][0] ] = ["Calibri"]
+
 def SUP_TITLE_FONT():
     return 32
 
@@ -27,10 +31,12 @@ def LEGEND_FONT():
     return TICK_FONT()
 
 def COLOR_A():
-    return "blue"
+    return "#A41F35"
+    #return "blue"
 
 def COLOR_B():
-    return "red"
+    return "#F8D7CD"
+    #return "red"
 
 def create_parser():
     parser = argparse.ArgumentParser(description="Plot results of BPE-optimization experiment")
@@ -76,7 +82,8 @@ def __scatter(json_file, axes, color, source_lang, dest_lang):
     #Let marker sizes be a function of the score
     min_marker_size = 6.0
     max_marker_size = 1000.0
-    marker_sizes = log_marker_sizes(scores, min_marker_size, max_marker_size)
+    #marker_sizes = log_marker_sizes(scores, min_marker_size, max_marker_size)
+    marker_sizes = linear_marker_sizes(scores, min_marker_size, max_marker_size)
 
 
     axes.scatter( source_merges[:-1], dest_merges[:-1],
@@ -175,9 +182,10 @@ if __name__ == "__main__":
     indices = args.indices if args.indices else [ i + 1 for i in range(len(args.input)) ]
     check_lengths(args.input, args.langs, indices)
 
-    fig = plt.figure( figsize=(21.5, 17),
+    fig = plt.figure( figsize=(21.47, 17.05),
+                      #figsize=(21.5, 17),
                       #figsize = (12, 12),
-                      dpi=128
+                      dpi=145
     )
     fig.suptitle("BLEU Translation Scores by Size", fontsize = SUP_TITLE_FONT(), weight="bold")
 
@@ -205,4 +213,4 @@ if __name__ == "__main__":
     plt.subplots_adjust(wspace = 0.3, hspace = 0.4)
     plt.savefig("/mnt/c/Users/elmin/Downloads/test.png")
     plt.savefig("test.png")
-    #plt.show()
+    plt.show()
