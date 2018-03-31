@@ -15,39 +15,53 @@ from apply_bpe import BPE
 def working_directory():
     return os.path.abspath(".")
 
+def absolute_file(path):
+    absolute = os.path.abspath(path)
+    if not os.path.isfile(absolute):
+        raise ValueError("%s is not a file." % absolute)
+    return absolute
+
+def absolute_dir(path):
+    absolute = os.path.abspath(path)
+    if not os.path.isdir(absolute):
+        raise ValueError("%s is not a directory." % absolute)
+    return absolute
 
 max_sequences_DEFAULT=(1000, 1000)
 
 def create_parser():
     parser = argparse.ArgumentParser(description="Find optimal number of BPE codes for a translation task")
 
-    parser.add_argument("--train", required=True, nargs=2, metavar=("<src_path>", "<ref_path>"), type=os.path.abspath, help="Source and destination training corpora")
+    parser.add_argument("--train", required=True, nargs=2, metavar=("<src_path>", "<ref_path>"), type=absolute_file, help="Source and destination training corpora in plain text")
 
-    parser.add_argument("--dev", required=True, nargs=3, metavar=("<src_sgml>", "<ref_sgml>", "<src_plain>"), type=os.path.abspath, help="Development corpora, with the source in both SGML and plain text.")
-    parser.add_argument("--test", required=True, nargs=3, metavar=("<src_sgml>", "<ref_sgml>", "<src_plain>"), type=os.path.abspath, help="Test corpora, with the source in both SGML and plain text.")
+    #CORPORA
+    parser.add_argument("--dev", nargs="+", metavar=("<dev_corpus>"), type=absolute_file, help="Development corpora in plain text (only need source if using BLEU, both source and dest otherwise")
+    parser.add_argument("--dev-sgml", nargs=2, metavar=("<src_plain>", "<ref_plain>"), type=absolute_file, help="Development corpora in SGML (required for BLEU")
 
-    parser.add_argument("--results", "-r", default="output.json", metavar="<json_path>", type=os.path.abspath, help="Path to write experimental results in JSON format")
-
-    parser.add_argument("--dest-lang", "-l", required=True, metavar="xx", type=str, help="ISO 2-char language code for target language")
-
+    #BPE Merges
     parser.add_argument("--codes", required=True, nargs="+", metavar="<codes_path>", type=os.path.abspath, help="BPE codes file(s) (pass in only one if using joint codes)")
+    parser.add_argument("--max-sequences", "-s", default=max_sequences_DEFAULT, nargs="+", metavar="n", type=int, help="Maximum number of codes to use from BPE code file(s) (default %(default)s); include two numbers for different limits on sequences in the source and destination languages")
 
-    parser.add_argument("--max-sequences", "-s", default=max_sequences_DEFAULT, nargs="+", metavar="n", type=int, help="Maximum number of codes to use from BPE code file(s) (default %(default)s); include two numbers for different limits on source and dest codes")
 
-
-    parser.add_argument("--translation-dir", "--trans", default=working_directory(), metavar="<dir>", type=os.path.abspath, help="Directory to write translated text (default current directory")
-    parser.add_argument("--vocab-dir", "--vocab", default=working_directory(), metavar="<dir>", type=os.path.abspath, help="Directory to write vocabulary files (default current directory")
-
-    parser.add_argument("--train-log-prefix", metavar="<dir>", type=str, help="Prefix for Marian traning logs")
+    #OUTPUT PATHS
+    parser.add_argument("--translation-dir", "--trans", default=working_directory(), metavar="<dir>", type=absolute_dir, help="Directory to write translated text (default current directory")
+    parser.add_argument("--vocab-dir", "--vocab", default=working_directory(), metavar="<dir>", type=absolute_dir, help="Directory to write vocabulary files (default current directory")
+    parser.add_argument("--train-log-prefix", metavar="<dir>", type=str, help="Prefix for Marian training logs")
     parser.add_argument("--model-prefix", metavar="<dir>", type=str, help="Prefix for Marian models")
 
+    #SCORING
+    parser.add_argument("--metric", "-m", default="bleu", nargs=1, help="Validation metric to use (\"bleu\"/\"ce-mean-words\")")
+    parser.add_argument("--results", "-r", default="output.json", metavar="<json_path>", type=os.path.abspath, help="Path to write experimental results in JSON format")
+
+    #MISCELLANEOUS
+    parser.add_argument("--dest-lang", "-l", default="en", metavar="xx", type=str, help="ISO 2-char language code for target language")
     parser.add_argument("--verbose", "-v", action="store_true", help="Show additional messages")
 
     return parser
 
 def convert_value(value):
    """
-   Hack used to make the most import values in an OptimizeResult object JSON-writeable"
+   Hack used to make the most important values in an OptimizeResult object JSON-writeable"
    """
    if type(value) == np.int32 or type(value) == np.int64: return int(value)
    if type(value) == np.float32 or type(value) == np.float64: return float(value)
@@ -88,68 +102,6 @@ class Experiment:
         if len(num_merges) > 1:      return ".s" + str(num_merges[0]) + "-" + str(num_merges[1])
         return ".s" + str(num_merges[0]) + "-" + str(num_merges[0])
 
-    def __init__(self, codes,
-                       train_source, train_dest,
-                       dev_source, dev_dest, dev_source_preproc,
-                       results = os.path.abspath("output.json"),
-                       max_sequences = max_sequences_DEFAULT,
-                       dest_lang = "en",
-                       model_prefix = None, train_log_prefix = None, vocab_dir = working_directory(), translation_dir = working_directory(),
-                       verbose = True):
-        """
-        dest_lang specifies the target language when using Moses's wrap_xml.perl
-        Either joint_vocab must be specified, or both source_vocab and dest_vocab must be specified.
-        """
-
-        self.verbose = verbose
-        self.train_source = os.path.abspath(train_source)
-        self.train_dest = os.path.abspath(train_dest)
-
-        self.dev_source = os.path.abspath(dev_source)
-        self.dev_dest = os.path.abspath(dev_dest)
-        self.dev_source_preproc = os.path.abspath(dev_source_preproc)
-
-        self.results = results
-
-        self.dest_lang = dest_lang
-
-        if len(codes) > 1:
-            self.joint_codes = False
-            self.source_codes = os.path.abspath(codes[0])
-            self.dest_codes = os.path.abspath(codes[1])
-        else:
-            self.joint_codes = True
-            self.source_codes = os.path.abspath(source_codes)
-            self.dest_codes = self.source_codes
-
-        self.max_sequences = max_sequences
-
-        self.model_prefix = Experiment.__process_prefix(model_prefix, "model", Experiment.__model_extension())
-        if self.verbose: print("Set model prefix as %s" % str(self.model_prefix))
-
-        self.train_log_prefix = Experiment.__process_prefix(train_log_prefix, "train", Experiment.__log_extension())
-        if self.verbose: print("Set training log prefix as %s" % str(self.train_log_prefix))
-
-        self.vocab_dir = os.path.abspath(vocab_dir)
-        if self.verbose: print("Set working directory as vocab directory.")
-
-        self.translation_dir = os.path.abspath(translation_dir)
-        if self.verbose: print("Set working directory as translation directory.")
-
-        self.seed = 1 #FIXME: Make this customizable by the user
-
-        self.score_table = []
-
-        self.results = results
-        if self.verbose: print("Will write results to %s" % str(self.results))
-
-    def __already_used(self, num_merges):
-       i = 0
-       for record in self.score_table:
-           if num_merges == record[0]: return i
-           i += 1
-       return -1
-
     @staticmethod
     def parse_nist(report):
         scoreLabel = "NIST score = "
@@ -169,6 +121,79 @@ class Experiment:
                 return maxRawScore - float(scoreString)
 
         return float("inf")
+
+
+    def __init__(self, codes, train, dev, dev_sgml = None, max_sequences = max_sequences_DEFAULT, #Corpora, BPE codes
+                       metric = "bleu", results = os.path.abspath("output.json"),
+                       model_prefix = None, train_log_prefix = None, vocab_dir = working_directory(), translation_dir = working_directory(),
+                       dest_lang = "en", verbose = True):
+        """
+        dev - Tuple of either just the source development corpus, or both the source and development corpora, in plain text
+        codes - Tuple of paths to one or more BPE codes files
+        dest_lang specifies the target language when using Moses's wrap_xml.perl
+        """
+
+        self.verbose = verbose
+        self.train_source = absolute_file(train[0])
+        self.train_dest = absolute_file(train[1])
+
+        self.metric = metric
+
+        self.dev_source = absolute_file(dev[0])
+        if self.metric == "bleu":
+            if not dev_sgml: raise ValueError("Must provide SGML development corpora to use BLEU metric")
+            self.dev_sgml_source = dev_sgml[0]
+            self.dev_sgml_dest = dev_sgml[1]
+        elif len(dev) < 2: raise ValueError("Must provied source and destination development corpora in plain text if not using BLEU metric")
+        else:
+            self.dev_dest = absolute_file(dev[1])
+
+
+        self.results = os.path.abspath(results)
+        if self.verbose: print("Will write results to %s" % str(self.results))
+
+        if len(codes) > 1:
+            self.joint_codes = False
+            self.source_codes = absolute_file(codes[0])
+            self.dest_codes = absolute_file(codes[1])
+        else:
+            self.joint_codes = True
+            self.source_codes = absolute_file(source_codes)
+            self.dest_codes = self.source_codes
+            if self.verbose: print("Using joint codes for source and target text")
+        self.max_sequences = max_sequences
+
+        self.model_prefix = Experiment.__process_prefix(model_prefix, "model", Experiment.__model_extension())
+        if self.verbose: print("Set model prefix as %s" % str(self.model_prefix))
+
+        self.train_log_prefix = Experiment.__process_prefix(train_log_prefix, "train", Experiment.__log_extension())
+        if self.verbose: print("Set training log prefix as %s" % str(self.train_log_prefix))
+
+        self.vocab_dir = absolute_dir(vocab_dir)
+        if self.verbose: print("Set working directory as vocab directory.")
+
+        self.translation_dir = absolute_dir(translation_dir)
+        if self.verbose: print("Set working directory as translation directory.")
+
+        self.seed = 1 #FIXME: Make this customizable by the user
+        self.dest_lang = dest_lang
+        self.score_table = []
+
+        #Temporary variables that change with each iteration of the experiment
+        self.source_vocab = None
+        self.dest_vocab = None
+        self.bpe_train_source = None
+        self.bpe_train_dest = None
+        self.bpe_dev_source = None
+        self.bpe_dev_dest = None
+
+
+    def __already_used(self, num_merges):
+       i = 0
+       for record in self.score_table:
+           if num_merges == record[0]: return i
+           i += 1
+       return -1
                          
 
     def score_nist(self, model, source_vocab, dest_vocab, bpe_dev_source, num_merges):
@@ -182,12 +207,13 @@ class Experiment:
                              "--quiet"
                             ]
 
-        translating = subprocess.Popen( translate_command, universal_newlines=True, stdout=subprocess.PIPE)
-        desegmenting = subprocess.Popen( ["sed", "-r", "s/(@@ )|(@@ ?$)//g"], stdin=translating.stdout, stdout=subprocess.PIPE)
-        detruecasing = subprocess.Popen(["detruecase.perl"], universal_newlines=True, stdin=desegmenting.stdout, stdout=subprocess.PIPE)
-        detokenizing = subprocess.Popen(["detokenizer.perl"], universal_newlines=True, stdin=detruecasing.stdout, stdout=subprocess.PIPE)
+        translating = subprocess.Popen( translate_command,                    universal_newlines=True,                            stdout=subprocess.PIPE)
+        desegmenting = subprocess.Popen(["sed", "-r", "s/(@@ )|(@@ ?$)//g"],  universal_newlines=True, stdin=translating.stdout,  stdout=subprocess.PIPE)
+        detruecasing = subprocess.Popen(["detruecase.perl"],                  universal_newlines=True, stdin=desegmenting.stdout, stdout=subprocess.PIPE)
+        detokenizing = subprocess.Popen(["detokenizer.perl"],                 universal_newlines=True, stdin=detruecasing.stdout, stdout=subprocess.PIPE)
         with open(sgm_translation, "w") as out:
-            wrapping = subprocess.Popen(["wrap-xml.perl", self.dest_lang, str(self.dev_source), "TheUniversityOfAlabama"], universal_newlines=True, stdin=detokenizing.stdout, stdout=out)
+            wrapping = subprocess.Popen(["wrap-xml.perl", self.dest_lang, str(self.dev_source_sgml), "TheUniversityOfAlabama"],
+                                         universal_newlines=True, stdin=detokenizing.stdout, stdout=out)
             status = wrapping.wait() 
             if status:
                 raise RuntimeError("Translation process with " + str(num_merges) + " merges failed with exit code " + str(status)) 
@@ -195,7 +221,7 @@ class Experiment:
         if self.verbose: print("Wrote translation %s" % (sgm_translation))
         sys.stdout.flush()
 
-        score_command = ["mteval-v14.pl", "-s", str(self.dev_source), "-t", str(sgm_translation), "-r", str(self.dev_dest)]
+        score_command = ["mteval-v14.pl", "-s", str(self.dev_source_sgml), "-t", str(sgm_translation), "-r", str(self.dev_dest_sgml)]
         scoring = subprocess.Popen(score_command, universal_newlines=True, stdout=subprocess.PIPE)
         output = scoring.communicate()[0]
         status = scoring.wait()
@@ -246,6 +272,8 @@ class Experiment:
            if self.verbose: print("Wrote vocabulary files %s" % dest_vocab)
 
        sys.stdout.flush()
+
+
        return (source_vocab, dest_vocab)
 
 
@@ -256,7 +284,7 @@ class Experiment:
        bpe_train_source = os.path.join( str(self.train_source) + Experiment.__merges_string(source_merges))
        bpe_train_dest = os.path.join( str(self.train_dest) + Experiment.__merges_string(dest_merges))
 
-       bpe_dev_source = os.path.join( str(self.dev_source_preproc) + Experiment.__merges_string(source_merges))
+       bpe_dev_source = os.path.join( str(self.dev_source) + Experiment.__merges_string(source_merges))
 
        with open(self.source_codes, "r", encoding="utf-8") as src_codes:
            source_encoder = BPE(src_codes, source_merges)
@@ -264,7 +292,7 @@ class Experiment:
            Experiment.__segment_corpus(self.train_source, bpe_train_source, source_encoder)
            if self.verbose: print("Wrote segmented training source corpus to %s" % str(bpe_train_source))
 
-           Experiment.__segment_corpus(self.dev_source_preproc, bpe_dev_source, source_encoder)
+           Experiment.__segment_corpus(self.dev_source, bpe_dev_source, source_encoder)
            if self.verbose: print("Wrote segmented development corpus to %s" % str(bpe_dev_source))
 
        with open(self.dest_codes, "r", encoding="utf-8") as dst_codes:
@@ -285,7 +313,8 @@ class Experiment:
         model_path = Experiment.__detailed_path(self.model_prefix, merges_string, Experiment.__model_extension())
         log_path = Experiment.__detailed_path(self.train_log_prefix, merges_string, Experiment.__log_extension())
 
-        epoch_size = 100000
+        epoch_size = 10000
+        #epoch_size = 100000
         minibatch_size = 2**6
         disp_freq = int(epoch_size / minibatch_size // 100)
 
@@ -322,7 +351,6 @@ class Experiment:
         return model_path
 
     def __vocab_rating(self, num_merges):
-
          sys.stdout.flush()
 
          index = self.__already_used(num_merges)
@@ -332,29 +360,34 @@ class Experiment:
              return score
 
          (bpe_train_source, bpe_train_dest, bpe_dev_source) = self.__preprocess_corpora(num_merges)
+         self.bpe_train_source = bpe_train_source
+         self.bpe_train_dest = bpe_train_dest
+         self.bpe_dev_source = bpe_dev_source
+
          (source_vocab, dest_vocab) = self.__generate_vocabs(bpe_train_source, bpe_train_dest, num_merges)
+         self.source_vocab = source_vocab
+         self.dest_vocab = dest_vocab
+
+
          model_path = self.__train_brief(bpe_train_source, bpe_train_dest, source_vocab, dest_vocab, num_merges)
 
-         score = self.score_nist(model_path, source_vocab, dest_vocab, bpe_dev_source, num_merges) 
+         if self.metric == "bleu": score = self.score_nist(model_path, source_vocab, dest_vocab, bpe_dev_source, num_merges) 
+         else:                     score = 7.0 #Placeholder
+
          self.score_table = [ (num_merges, score) ]
+
+         print("First score: ", score)
+         exit(0)
+
          return score
    
 
     def optimize_merges(self):
-        if self.joint_codes: 
-            space = [ (0, self.max_sequences[0]) ]
-        elif len(self.max_sequences) > 1:
-            space = [ (0, self.max_sequences[0]), (0, self.max_sequences[1]) ]
-        else:
-            space = [ (0, self.max_sequences[0]), (0, self.max_sequences[0]) ]
-
-        res = skopt.gp_minimize( self.__vocab_rating,
-                                 space,
-                                 n_calls = 20,
-                                 random_state = self.seed,
-                                 verbose = self.verbose)
+        if self.joint_codes:              space = [ (0, self.max_sequences[0]) ]
+        elif len(self.max_sequences) > 1: space = [ (0, self.max_sequences[0]), (0, self.max_sequences[1]) ]
+        else:                             space = [ (0, self.max_sequences[0]), (0, self.max_sequences[0]) ]
+        res = skopt.gp_minimize( self.__vocab_rating, space, n_calls = 20, random_state = self.seed, verbose = self.verbose)
         return res
-
 
     def run_experiment(self):
         res = self.optimize_merges()
@@ -362,19 +395,15 @@ class Experiment:
         with open(self.results, "w") as out:
             json.dump(res, out, default=convert_value, indent = "    ")
         return res 
-
+#End Experiment class
 
 if __name__ == "__main__":
    parser = create_parser()
    args = parser.parse_args()
 
-   exp = Experiment(  args.codes, 
-                      args.train[0], args.train[1],
-                      args.dev[0], args.dev[1], args.dev[2],
-                      results = args.results,
-                      dest_lang = args.dest_lang,
-                      max_sequences = args.max_sequences,
+   exp = Experiment(  args.codes, args.train, args.dev, dev_sgml = args.dev_sgml, max_sequences=args.max_sequences,
+                      metric = args.metric, results = args.results,
                       model_prefix = args.model_prefix, train_log_prefix = args.train_log_prefix, vocab_dir = args.vocab_dir, translation_dir = args.translation_dir,
-                      verbose = args.verbose
+                      dest_lang = args.dest_lang, verbose = args.verbose
    )
    exp.run_experiment()
