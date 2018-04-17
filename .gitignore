@@ -1,4 +1,5 @@
 experiments/
+euro_exp/
 
 #pycache
 __pycache__
@@ -7,6 +8,10 @@ __pycache__
 #ASC Logs
 *.o1*
 *.i1*
+
+#Scripts too narrow in purpose to track
+europroc.sh
+cp_euro.sh
 
 #Miscellaneous files
 test.sh
