@@ -22,11 +22,11 @@ def create_parser():
     parser.add_argument("--train", nargs=2, required=True, metavar=("<src_path>", "<ref_path>"), type = argparse.FileType("w"), help="Output: training sets in plain text")
 
     parser.add_argument("--dev", nargs=2, metavar=("<src_path>", "<ref_path>"), type = argparse.FileType("w"), help="Output: dev sets in SGML")
-    parser.add_argument("--dev_plain", metavar="<src_path>", type = argparse.FileType("w"), help = "Output: source dev set in plain text")
+    parser.add_argument("--dev_plain", nargs=2, metavar=("<src_path>", "<ref_path>"), type = argparse.FileType("w"), help = "Output: dev sets in plain text")
     parser.add_argument("--dev_id", default="", help="setid XML attribute for development sets")
 
     parser.add_argument("--test", nargs=2, metavar=("<src_path>", "<ref_path>"), type = argparse.FileType("w"), help="Output: test sets in SGML")
-    parser.add_argument("--test_plain", metavar="<src_path>", type = argparse.FileType("w"), help ="Output: source test set in plain text")
+    parser.add_argument("--test_plain", nargs=2, metavar=("<src_path>", "<ref_path>"), type = argparse.FileType("w"), help ="Output: test sets in plain text")
     parser.add_argument("--test_id", default="", help="setid XML attribute for test sets")
 
     parser.add_argument("--ratio", "-r", default = (1.0, 0.0, 0.0), metavar="train:dev:test", type = str2ratio, help = "Ratio of sizes of training, development, and test sets")
@@ -126,8 +126,11 @@ if __name__ == "__main__":
         write_ref_xml(args.dev[1].name, dev_ref, args.dev_id, args.trglang)
         verbose_message(args.verbose, args.dev[1].name)
     if args.dev_plain:
-        write_plain(args.dev_plain.name, dev_src)
-        verbose_message(args.verbose, args.dev_plain.name)
+        write_plain(args.dev_plain[0].name, dev_src)
+        verbose_message(args.verbose, args.dev_plain[0].name)
+
+        write_plain(args.dev_plain[1].name, dev_ref)
+        verbose_message(args.verbose, args.dev_plain[1].name)
 
     if args.test:
         write_src_xml(args.test[0].name, test_src, args.test_id)
@@ -136,5 +139,11 @@ if __name__ == "__main__":
         write_ref_xml(args.test[1].name, test_ref, args.test_id, args.trglang)
         verbose_message(args.verbose, args.test[1].name)
     if args.test_plain:
-        write_plain(args.test_plain.name, test_src)
-        verbose_message(args.verbose, args.test_plain.name)
+        write_plain(args.test_plain[0].name, test_src)
+        verbose_message(args.verbose, args.test_plain[0].name)
+
+        write_plain(args.test_plain[1].name, test_ref)
+        verbose_message(args.verbose, args.test_plain[1].name)
+
+
+

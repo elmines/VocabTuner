@@ -47,7 +47,7 @@ def tokenize(raw, tok, lang):
     Tokenize plain text corpus.
     """
     with open(raw, "r", encoding = "utf-8") as r, open(tok, "w", encoding = "utf-8") as w:
-        tokenizing = subprocess.Popen(["tokenizer.perl", "-l", lang], stdin=r, stdout=w, universal_newlines=True)
+        tokenizing = subprocess.Popen(["tokenizer.perl", "-l", lang, "-threads", str(4)], stdin=r, stdout=w, universal_newlines=True)
         status = tokenizing.wait()
     if status:
         raise RuntimeError("Tokenization of %s failed with exit code %d" % (raw, status))
