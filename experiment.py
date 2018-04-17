@@ -122,6 +122,10 @@ class Experiment:
 
         return float("inf")
 
+    @staticmethod
+    def parse_marian(report):
+        return 7.0
+
 
     def __init__(self, codes, train, dev, dev_sgml = None, max_sequences = max_sequences_DEFAULT, #Corpora, BPE codes
                        metric = "bleu", results = os.path.abspath("output.json"),
@@ -140,11 +144,12 @@ class Experiment:
         self.metric = metric
 
         self.dev_source = absolute_file(dev[0])
+        self.dev_dest   = None
         if self.metric == "bleu":
             if not dev_sgml: raise ValueError("Must provide SGML development corpora to use BLEU metric")
-            self.dev_sgml_source = dev_sgml[0]
-            self.dev_sgml_dest = dev_sgml[1]
-        elif len(dev) < 2: raise ValueError("Must provied source and destination development corpora in plain text if not using BLEU metric")
+            self.sgml_dev_source = dev_sgml[0]
+            self.sgml_dev_dest = dev_sgml[1]
+        elif len(dev) < 2: raise ValueError("Must provide source and destination development corpora in plain text if not using BLEU metric")
         else:
             self.dev_dest = absolute_file(dev[1])
 
@@ -179,14 +184,6 @@ class Experiment:
         self.dest_lang = dest_lang
         self.score_table = []
 
-        #Temporary variables that change with each iteration of the experiment
-        self.source_vocab = None
-        self.dest_vocab = None
-        self.bpe_train_source = None
-        self.bpe_train_dest = None
-        self.bpe_dev_source = None
-        self.bpe_dev_dest = None
-
 
     def __already_used(self, num_merges):
        i = 0
@@ -197,31 +194,32 @@ class Experiment:
                          
 
     def score_nist(self, model, source_vocab, dest_vocab, bpe_dev_source, num_merges):
-        sgm_translation = os.path.abspath( os.path.join(self.translation_dir, self.dest_lang + Experiment.__merges_string(num_merges) + ".dev.sgm") )
+        sgml_translation = os.path.abspath( os.path.join(self.translation_dir, self.dest_lang + Experiment.__merges_string(num_merges) + ".dev.sgm") )
 
         translate_command = ["marian-decoder",
                              "--models", str(model),
                              "--input", str(bpe_dev_source),
                              "--vocabs", str(source_vocab), str(dest_vocab),
-                             "--devices", str(0),
-                             "--quiet"
+                             "--devices", str(0)
+                             #,"--quiet"
                             ]
 
-        translating = subprocess.Popen( translate_command,                    universal_newlines=True,                            stdout=subprocess.PIPE)
+
+        translating =  subprocess.Popen( translate_command,                   universal_newlines=True,                            stdout=subprocess.PIPE)
         desegmenting = subprocess.Popen(["sed", "-r", "s/(@@ )|(@@ ?$)//g"],  universal_newlines=True, stdin=translating.stdout,  stdout=subprocess.PIPE)
         detruecasing = subprocess.Popen(["detruecase.perl"],                  universal_newlines=True, stdin=desegmenting.stdout, stdout=subprocess.PIPE)
         detokenizing = subprocess.Popen(["detokenizer.perl"],                 universal_newlines=True, stdin=detruecasing.stdout, stdout=subprocess.PIPE)
-        with open(sgm_translation, "w") as out:
-            wrapping = subprocess.Popen(["wrap-xml.perl", self.dest_lang, str(self.dev_source_sgml), "TheUniversityOfAlabama"],
+        with open(sgml_translation, "w") as out:
+            wrapping = subprocess.Popen(["wrap-xml.perl", self.dest_lang, str(self.sgml_dev_source), "TheUniversityOfAlabama"],
                                          universal_newlines=True, stdin=detokenizing.stdout, stdout=out)
             status = wrapping.wait() 
             if status:
                 raise RuntimeError("Translation process with " + str(num_merges) + " merges failed with exit code " + str(status)) 
 
-        if self.verbose: print("Wrote translation %s" % (sgm_translation))
+        if self.verbose: print("Wrote translation %s" % (sgml_translation))
         sys.stdout.flush()
 
-        score_command = ["mteval-v14.pl", "-s", str(self.dev_source_sgml), "-t", str(sgm_translation), "-r", str(self.dev_dest_sgml)]
+        score_command = ["mteval-v14.pl", "-s", str(self.sgml_dev_source), "-t", str(sgml_translation), "-r", str(self.sgml_dev_dest)]
         scoring = subprocess.Popen(score_command, universal_newlines=True, stdout=subprocess.PIPE)
         output = scoring.communicate()[0]
         status = scoring.wait()
@@ -230,6 +228,25 @@ class Experiment:
         sys.stdout.flush()
 
         return Experiment.parse_nist(output)
+
+    def __score_marian(model_path, source_vocab, dest_vocab, bpe_dev_source, bpe_dev_dest, num_merges):
+        command = 
+         ["marian-scorer",
+          "--model", str(model_path),
+          "--vocab", source_vocab, dest_vocab,
+          "--train-sets", bpe_dev_source, bpe_dev_dest,
+          "--summary", "ce-mean-words"
+         ]
+
+        scoring = subprocess.Popen(command, stdout=subprocess.PIPE, universal_newlines=True)
+        status = scoring.wait()
+        if status:
+           raise RuntimeError("Scoring process with " + str(num_merges) " merges failed with exit code " + str(status))
+        
+        results_text = scoring.communicate()[0]
+        print(results_text)
+
+        return parse_marian(results_text)
 
     @staticmethod
     def __segment_corpus(raw, processed, bp_encoder):
@@ -285,6 +302,7 @@ class Experiment:
        bpe_train_dest = os.path.join( str(self.train_dest) + Experiment.__merges_string(dest_merges))
 
        bpe_dev_source = os.path.join( str(self.dev_source) + Experiment.__merges_string(source_merges))
+       bpe_dev_dest = os.path.join( str(self.dev_dest) + Experiment.__merges_string(source_merges))
 
        with open(self.source_codes, "r", encoding="utf-8") as src_codes:
            source_encoder = BPE(src_codes, source_merges)
@@ -300,9 +318,15 @@ class Experiment:
 
            Experiment.__segment_corpus(self.train_dest, bpe_train_dest, dest_encoder)
            if self.verbose: print("Wrote segmented training destination corpus to %s" % str(bpe_train_dest))
+
+           if self.dev_dest:
+               Experiment.__segment_corpus(self.dev_dest, bpe_dev_dest, dest_encoder)
+               if self.verbose: print("Wrote segmented development destination corpus to %s" % str(bpe_dev_dest))
+
        sys.stdout.flush()
 
-       return (bpe_train_source, bpe_train_dest, bpe_dev_source)
+       if self.dev_dest: return (bpe_train_source, bpe_train_dest, bpe_dev_source, bpe_dev_dest)
+       else:             return (bpe_train_source, bpe_train_dest, bpe_dev_source)
 
 
     def __train_brief(self, bpe_train_source, bpe_train_dest, source_vocab, dest_vocab, num_merges):
@@ -313,8 +337,8 @@ class Experiment:
         model_path = Experiment.__detailed_path(self.model_prefix, merges_string, Experiment.__model_extension())
         log_path = Experiment.__detailed_path(self.train_log_prefix, merges_string, Experiment.__log_extension())
 
-        epoch_size = 10000
-        #epoch_size = 100000
+        #epoch_size = 10000
+        epoch_size = 100000
         minibatch_size = 2**6
         disp_freq = int(epoch_size / minibatch_size // 100)
 
@@ -337,7 +361,8 @@ class Experiment:
                           "--train-sets", str(bpe_train_source), str(bpe_train_dest),
                           "--vocabs", str(source_vocab), str(dest_vocab),
                           "--max-length", str(50), "--max-length-crop",
-                          "--after-epochs", str(6),
+                          "--after-batches", str(1), #str(100),
+                          #"--after-epochs", str(1),
                           "--disp-freq", str(disp_freq),
                           "--device", str(0),
                           "--mini-batch-fit", #str(32),
@@ -359,20 +384,16 @@ class Experiment:
              if self.verbose: print("Returning cached score of %f" % score)
              return score
 
-         (bpe_train_source, bpe_train_dest, bpe_dev_source) = self.__preprocess_corpora(num_merges)
-         self.bpe_train_source = bpe_train_source
-         self.bpe_train_dest = bpe_train_dest
-         self.bpe_dev_source = bpe_dev_source
-
+         segmented_corpora = self.__preprocess_corpora(num_merges)
+         if self.dev_dest: (bpe_train_source, bpe_train_dest, bpe_dev_source, bpe_dev_dest) = segmented_corpora
+         else:             (bpe_train_source, bpe_train_dest, bpe_dev_source)               = segmented_corpora
          (source_vocab, dest_vocab) = self.__generate_vocabs(bpe_train_source, bpe_train_dest, num_merges)
-         self.source_vocab = source_vocab
-         self.dest_vocab = dest_vocab
 
 
          model_path = self.__train_brief(bpe_train_source, bpe_train_dest, source_vocab, dest_vocab, num_merges)
 
-         if self.metric == "bleu": score = self.score_nist(model_path, source_vocab, dest_vocab, bpe_dev_source, num_merges) 
-         else:                     score = 7.0 #Placeholder
+         if self.metric == "bleu": score =   self.score_nist(model_path, source_vocab, dest_vocab, bpe_dev_source,               num_merges) 
+         else:                     score = self.score_marian(model_path, source_vocab, dest_vocab, bpe_dev_source, bpe_dev_dest, num_merges)
 
          self.score_table = [ (num_merges, score) ]
 
