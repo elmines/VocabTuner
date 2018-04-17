@@ -103,6 +103,38 @@ def tok_and_learn_tc(raw, lang, suffix=suffix_DEFAULT, write_dir=write_dir_DEFAU
     return (clean, tc_model)
 
 
+def learn_codes(source_corp, dest_corp, source_codes, dest_codes, num_sequences, verbose=False):
+    """
+    source_corp - file path to source corpus
+    dest_corp - file path to destination corpus
+    source_codes - file path to write source codes
+    dest_codes - file path to write destination codes
+    num_sequences - maximum number of sequences to learn
+    verbose - print all messages
+    """
+    with open(source_corp, "r", encoding="utf-8") as corp, open(source_codes, "w", encoding="utf-8") as codes:
+        learn_bpe.main(corp, codes, num_sequences, verbose=verbose)
+    if verbose: print("Wrote codes file %s" % source_codes)
+    with open(dest_corp, "r", encoding="utf-8") as corp, open(dest_codes, "w", encoding="utf-8") as codes:
+        learn_bpe.main(corp, codes, num_sequences, verbose=verbose)
+    if verbose: print("Wrote codes file %s" % dest_codes)
+      
+def learn_joint_codes(source_corp, dest_corp, joint_codes, num_sequences, verbose=False):
+    """
+    source_corp - file path to source corpus
+    dest_corp - file path to destination corpus
+    joint_codes - file path to write joint codes
+    num_sequences - maximum number of sequences to learn
+    verbose - print all messages
+    """
+    temp_file = source_corp + ".cat." + dest_corp
+    with open(source_codes, "r", encoding="utf-8") as s, open(dest_codes, "r", encoding="utf-8") as d, open(temp_file, "w", encoding="utf-8") as t:
+        lines = s.readlines() + d.readlines()
+        temp_file.write_lines(lines)
+    with open(temp_file, "r", encoding="utf-8") as temp, open(joint_codes, "w", encoding="utf-8") as joint:
+        learn_bpe.main(temp, joint, num_sequences, verbose=verbose)
+    os.path.delete(temp_file)
+    if verbose: print("Wrote joint codes file %s" % joint_codes)
 
 def main(train, langs, joint=False, num_sequences=num_sequences_DEFAULT, suffix=suffix_DEFAULT, write_dir=write_dir_DEFAULT, extra_source = None, extra_dest = None, verbose=False):
     if not os.path.isdir(write_dir):
@@ -111,15 +143,13 @@ def main(train, langs, joint=False, num_sequences=num_sequences_DEFAULT, suffix=
     (source_clean, source_tc_model) = tok_and_learn_tc(train[0].name, langs[0], suffix=suffix, write_dir=write_dir, verbose=verbose)
     (dest_clean, dest_tc_model) = tok_and_learn_tc(train[1].name, langs[1], suffix=suffix, write_dir=write_dir, verbose=verbose)
 
-    source_codes = os.path.abspath( os.path.join(write_dir, langs[0] + codes_suffix) )
-    with open(source_clean, "r", encoding="utf-8") as corp, open(source_codes, "w", encoding="utf-8") as codes:
-        learn_bpe.main(corp, codes, num_sequences)
-    if verbose: print("Wrote codes file %s" % source_codes)
-
-    dest_codes = os.path.abspath( os.path.join(write_dir, langs[1] + codes_suffix) )
-    with open(dest_clean, "r", encoding="utf-8") as corp, open(dest_codes, "w", encoding="utf-8") as codes:
-        learn_bpe.main(corp, codes, num_sequences)
-    if verbose: print("Wrote codes file %s" % dest_codes)
+    if joint:
+        joint_codes = os.path.abspath( os.path.join(write_dir, langs[0] + "-" langs[1] + codes_suffix) )
+        learn_joint_codes(source_clean, dest_clean, joint_codes, num_sequences, verbose)
+    else:
+        source_codes = os.path.abspath( os.path.join(write_dir, langs[0] + codes_suffix) )
+        dest_codes = os.path.abspath( os.path.join(write_dir, langs[1] + codes_suffix) )
+        learn_codes(source_clean, dest_clean, source_codes, dest_codes, num_sequences, verbose)
 
     if extra_source: 
         for source in extra_source:
