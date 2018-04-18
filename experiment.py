@@ -10,6 +10,7 @@ subword_nmt = os.path.join("/home/ualelm", "subword_fork")
 if subword_nmt not in sys.path:
     sys.path.append(subword_nmt)
 from apply_bpe import BPE
+from get_vocab import write_vocab
 
 
 def working_directory():
@@ -28,6 +29,7 @@ def absolute_dir(path):
     return absolute
 
 max_sequences_DEFAULT=(1000, 1000)
+vocab_threshold_DEFAULT=0
 
 def create_parser():
     parser = argparse.ArgumentParser(description="Find optimal number of BPE codes for a translation task")
@@ -41,7 +43,7 @@ def create_parser():
     #BPE Merges
     parser.add_argument("--codes", required=True, nargs="+", metavar="<codes_path>", type=os.path.abspath, help="BPE codes file(s) (pass in only one if using joint codes)")
     parser.add_argument("--max-sequences", "-s", default=max_sequences_DEFAULT, nargs="+", metavar="n", type=int, help="Maximum number of codes to use from BPE code file(s) (default %(default)s); include two numbers for different limits on sequences in the source and destination languages")
-
+    parser.add_argument("--vocabulary-threshold", "--thresh", default=vocab_threshold_DEFAULT, metavar="n", type=int, help="--vocbaulary threshold parameter for apply_bpe.py")
 
     #OUTPUT PATHS
     parser.add_argument("--translation-dir", "--trans", default=working_directory(), metavar="<dir>", type=absolute_dir, help="Directory to write translated text (default current directory")
@@ -124,10 +126,13 @@ class Experiment:
 
     @staticmethod
     def parse_marian(report):
-        return 7.0
+        if ("nan" in report) or ("inf" in report):
+            return float("inf")
+        else:
+            return float(report)
 
-
-    def __init__(self, codes, train, dev, dev_sgml = None, max_sequences = max_sequences_DEFAULT, #Corpora, BPE codes
+    def __init__(self, codes, train, dev, dev_sgml = None,
+                       max_sequences = max_sequences_DEFAULT, vocab_threshold = vocab_threshold_DEFAULT, 
                        metric = "bleu", results = os.path.abspath("output.json"),
                        model_prefix = None, train_log_prefix = None, vocab_dir = working_directory(), translation_dir = working_directory(),
                        dest_lang = "en", verbose = True):
@@ -166,7 +171,9 @@ class Experiment:
             self.source_codes = absolute_file(source_codes)
             self.dest_codes = self.source_codes
             if self.verbose: print("Using joint codes for source and target text")
+
         self.max_sequences = max_sequences
+        self.vocab_threshold = vocab_threshold if vocab_threshold > vocab_threshold_DEFAULT else vocab_threshold_DEFAULT
 
         self.model_prefix = Experiment.__process_prefix(model_prefix, "model", Experiment.__model_extension())
         if self.verbose: print("Set model prefix as %s" % str(self.model_prefix))
@@ -229,7 +236,7 @@ class Experiment:
 
         return Experiment.parse_nist(output)
 
-    def __score_marian(model_path, source_vocab, dest_vocab, bpe_dev_source, bpe_dev_dest, num_merges):
+    def score_marian(model_path, source_vocab, dest_vocab, bpe_dev_source, bpe_dev_dest, num_merges):
         command = 
          ["marian-scorer",
           "--model", str(model_path),
@@ -246,7 +253,7 @@ class Experiment:
         results_text = scoring.communicate()[0]
         print(results_text)
 
-        return parse_marian(results_text)
+        return Experiment.parse_marian(results_text)
 
     @staticmethod
     def __segment_corpus(raw, processed, bp_encoder):
@@ -308,8 +315,15 @@ class Experiment:
            source_encoder = BPE(src_codes, source_merges)
 
            Experiment.__segment_corpus(self.train_source, bpe_train_source, source_encoder)
+           if self.vocabulary_threshold:
+               filter_file = os.path.join(self.vocab_dir, "source_filter" + Experiment.__merges_string(source_merges))
+               get_vocab.write_vocab(bpe_train_source, source_filter)
+               filter_dict = apply_bpe.read_vocabulary(filter_file, self.vocab_threshold)
+               source_encoder = BPE(src_codes, source_merges, vocab=filter_dict)
+               Experiment.__segment_corpus(self.train_source, bpe_train_source, source_encoder)
            if self.verbose: print("Wrote segmented training source corpus to %s" % str(bpe_train_source))
 
+           #Segment the development corpus with the same, final encoder we used for the source one
            Experiment.__segment_corpus(self.dev_source, bpe_dev_source, source_encoder)
            if self.verbose: print("Wrote segmented development corpus to %s" % str(bpe_dev_source))
 
@@ -317,13 +331,20 @@ class Experiment:
            dest_encoder = BPE(dst_codes, dest_merges)
 
            Experiment.__segment_corpus(self.train_dest, bpe_train_dest, dest_encoder)
+           if self.vocabulary_threshold:
+               filter_file = os.path.join(self.vocab_dir, "dest_filter" + Experiment.__merges_string(dest_merges))
+               get_vocab.write_vocab(bpe_train_dest, dest_filter)
+               filter_dict = apply_bpe.read_vocabulary(filter_file, self.vocab_threshold)
+               dest_encoder = BPE(src_codes, dest_merges, vocab=filter_dict)
+               Experiment.__segment_corpus(self.train_dest, bpe_train_dest, dest_encoder)
+
            if self.verbose: print("Wrote segmented training destination corpus to %s" % str(bpe_train_dest))
 
            if self.dev_dest:
                Experiment.__segment_corpus(self.dev_dest, bpe_dev_dest, dest_encoder)
                if self.verbose: print("Wrote segmented development destination corpus to %s" % str(bpe_dev_dest))
 
-       sys.stdout.flush()
+
 
        if self.dev_dest: return (bpe_train_source, bpe_train_dest, bpe_dev_source, bpe_dev_dest)
        else:             return (bpe_train_source, bpe_train_dest, bpe_dev_source)
