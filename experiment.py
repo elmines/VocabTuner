@@ -300,55 +300,27 @@ class Experiment:
 
        return (source_vocab, dest_vocab)
 
+    def __segment_corpora(num_merges, codes, train, dev=None, side="source"):
+       bpe_train =  os.path.join( str(train) + Experiment.__merges_string(num_merges) )
+       bpe_dev = os.path.join( str(dev) + Experiment.__merges_string(num_merges) ) if dev else None
 
-    def __preprocess_corpora(self, num_merges):
-       source_merges = num_merges[0]
-       dest_merges = source_merges if len(num_merges) == 1 else num_merges[1]
-
-       bpe_train_source = os.path.join( str(self.train_source) + Experiment.__merges_string(source_merges))
-       bpe_train_dest = os.path.join( str(self.train_dest) + Experiment.__merges_string(dest_merges))
-
-       bpe_dev_source = os.path.join( str(self.dev_source) + Experiment.__merges_string(source_merges))
-       bpe_dev_dest = os.path.join( str(self.dev_dest) + Experiment.__merges_string(source_merges))
-
-       with open(self.source_codes, "r", encoding="utf-8") as src_codes:
-           source_encoder = BPE(src_codes, source_merges)
-
-           Experiment.__segment_corpus(self.train_source, bpe_train_source, source_encoder)
+       with open(codes, "r", encoding="utf-8") as cds:
+           encoder = BPE(cds, num_merges)
+           Experiment.__segment_corpus(train, bpe_train, encoder)
            if self.vocabulary_threshold:
-               filter_file = os.path.join(self.vocab_dir, "source_filter" + Experiment.__merges_string(source_merges))
+               filter_file = os.path.join(self.vocab_dir, side + "_filter" + Experiment.__merges_string(source_merges))
                get_vocab.write_vocab(bpe_train_source, source_filter)
+               if self.verbose: print("Wrote vocabulary filter %s" % filter_file)
+
                filter_dict = apply_bpe.read_vocabulary(filter_file, self.vocab_threshold)
-               source_encoder = BPE(src_codes, source_merges, vocab=filter_dict)
-               Experiment.__segment_corpus(self.train_source, bpe_train_source, source_encoder)
-           if self.verbose: print("Wrote segmented training source corpus to %s" % str(bpe_train_source))
+               encoder = BPE(cds, num_merges, vocab=filter_dict)
+               Experiment.__segment_corpus(train, bpe_train, encoder)
+               if self.verbose: print("Wrote segmented training corpus %s" % bpe_train)
+           if dev:
+               Experiment.__segment_corpus(dev, bpe_dev, encoder)
+               if self.verbose: print("Wrote segmented development corpus %s" % bpe_dev)
 
-           #Segment the development corpus with the same, final encoder we used for the source one
-           Experiment.__segment_corpus(self.dev_source, bpe_dev_source, source_encoder)
-           if self.verbose: print("Wrote segmented development corpus to %s" % str(bpe_dev_source))
-
-       with open(self.dest_codes, "r", encoding="utf-8") as dst_codes:
-           dest_encoder = BPE(dst_codes, dest_merges)
-
-           Experiment.__segment_corpus(self.train_dest, bpe_train_dest, dest_encoder)
-           if self.vocabulary_threshold:
-               filter_file = os.path.join(self.vocab_dir, "dest_filter" + Experiment.__merges_string(dest_merges))
-               get_vocab.write_vocab(bpe_train_dest, dest_filter)
-               filter_dict = apply_bpe.read_vocabulary(filter_file, self.vocab_threshold)
-               dest_encoder = BPE(src_codes, dest_merges, vocab=filter_dict)
-               Experiment.__segment_corpus(self.train_dest, bpe_train_dest, dest_encoder)
-
-           if self.verbose: print("Wrote segmented training destination corpus to %s" % str(bpe_train_dest))
-
-           if self.dev_dest:
-               Experiment.__segment_corpus(self.dev_dest, bpe_dev_dest, dest_encoder)
-               if self.verbose: print("Wrote segmented development destination corpus to %s" % str(bpe_dev_dest))
-
-
-
-       if self.dev_dest: return (bpe_train_source, bpe_train_dest, bpe_dev_source, bpe_dev_dest)
-       else:             return (bpe_train_source, bpe_train_dest, bpe_dev_source)
-
+        return (bpe_train, bpe_dev)
 
     def __train_brief(self, bpe_train_source, bpe_train_dest, source_vocab, dest_vocab, num_merges):
         """
@@ -405,9 +377,12 @@ class Experiment:
              if self.verbose: print("Returning cached score of %f" % score)
              return score
 
-         segmented_corpora = self.__preprocess_corpora(num_merges)
-         if self.dev_dest: (bpe_train_source, bpe_train_dest, bpe_dev_source, bpe_dev_dest) = segmented_corpora
-         else:             (bpe_train_source, bpe_train_dest, bpe_dev_source)               = segmented_corpora
+         source_merges = num_merges[0]
+         dest_merges = num_merges[0] if len(num_merges) == 1 else num_merges[1]
+
+         (bpe_train_source, bpe_dev_source) = self.__segment_corpora(num_merges[0], self.source_codes, self.train_source, dev=self.dev_source, side="source")
+         (bpe_dest_source, bpe_dev_dest)    = self.__segment_corpora(dest_merges, self.dest_codes,   self.train_dest,   dev=self.dev_dest, side="dest")
+
          (source_vocab, dest_vocab) = self.__generate_vocabs(bpe_train_source, bpe_train_dest, num_merges)
 
 
@@ -416,7 +391,7 @@ class Experiment:
          if self.metric == "bleu": score =   self.score_nist(model_path, source_vocab, dest_vocab, bpe_dev_source,               num_merges) 
          else:                     score = self.score_marian(model_path, source_vocab, dest_vocab, bpe_dev_source, bpe_dev_dest, num_merges)
 
-         self.score_table = [ (num_merges, score) ]
+         self.score_table += [ (num_merges, score) ]
 
          print("First score: ", score)
          exit(0)
@@ -428,7 +403,7 @@ class Experiment:
         if self.joint_codes:              space = [ (0, self.max_sequences[0]) ]
         elif len(self.max_sequences) > 1: space = [ (0, self.max_sequences[0]), (0, self.max_sequences[1]) ]
         else:                             space = [ (0, self.max_sequences[0]), (0, self.max_sequences[0]) ]
-        res = skopt.gp_minimize( self.__vocab_rating, space, n_calls = 20, random_state = self.seed, verbose = self.verbose)
+        res = skopt.gp_minimize( self.__vocab_rating, space, n_calls = 10, random_state = self.seed, verbose = self.verbose)
         return res
 
     def run_experiment(self):
@@ -443,7 +418,7 @@ if __name__ == "__main__":
    parser = create_parser()
    args = parser.parse_args()
 
-   exp = Experiment(  args.codes, args.train, args.dev, dev_sgml = args.dev_sgml, max_sequences=args.max_sequences,
+   exp = Experiment(  args.codes, args.train, args.dev, dev_sgml = args.dev_sgml, max_sequences=args.max_sequences, vocab_threshold=args.vocabulary_threshold,`
                       metric = args.metric, results = args.results,
                       model_prefix = args.model_prefix, train_log_prefix = args.train_log_prefix, vocab_dir = args.vocab_dir, translation_dir = args.translation_dir,
                       dest_lang = args.dest_lang, verbose = args.verbose
