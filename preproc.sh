@@ -25,6 +25,7 @@ let MAX_CODES=200000
 python3 preprocess.py  --train $TRAIN_SRC $TRAIN_DST \
                       --langs $SRC_LANG $DST_LANG \
                       --num-sequences $MAX_CODES \
+                      --joint \
                       --write-dir $DATA \
                       --extra-source $DEV_SRC $TST_SRC \
                       --extra-dest   $DEV_DST $TST_DST \

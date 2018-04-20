@@ -127,14 +127,17 @@ def learn_joint_codes(source_corp, dest_corp, joint_codes, num_sequences, verbos
     num_sequences - maximum number of sequences to learn
     verbose - print all messages
     """
-    temp_file = source_corp + ".cat." + dest_corp
-    with open(source_codes, "r", encoding="utf-8") as s, open(dest_codes, "r", encoding="utf-8") as d, open(temp_file, "w", encoding="utf-8") as t:
+    temp_file = "temp_cat_file"
+    with open(source_corp, "r", encoding="utf-8") as s, open(dest_corp, "r", encoding="utf-8") as d, open(temp_file, "w", encoding="utf-8") as t:
         lines = s.readlines() + d.readlines()
-        temp_file.write_lines(lines)
+        t.writelines(lines)
+    if verbose: print("Concatenated %s and %s to temporary file %s" % (source_corp, dest_corp, temp_file))
     with open(temp_file, "r", encoding="utf-8") as temp, open(joint_codes, "w", encoding="utf-8") as joint:
         learn_bpe.main(temp, joint, num_sequences, verbose=verbose)
-    os.path.delete(temp_file)
-    if verbose: print("Wrote joint codes file %s" % joint_codes)
+    os.remove(temp_file)
+    if verbose:
+        print("Deleted temporary file %s" % temp_file)
+        print("Wrote joint codes file %s" % joint_codes)
 
 def main(train, langs, joint=False, num_sequences=num_sequences_DEFAULT, suffix=suffix_DEFAULT, write_dir=write_dir_DEFAULT, extra_source = None, extra_dest = None, verbose=False):
     if not os.path.isdir(write_dir):
@@ -144,7 +147,7 @@ def main(train, langs, joint=False, num_sequences=num_sequences_DEFAULT, suffix=
     (dest_clean, dest_tc_model) = tok_and_learn_tc(train[1].name, langs[1], suffix=suffix, write_dir=write_dir, verbose=verbose)
 
     if joint:
-        joint_codes = os.path.abspath( os.path.join(write_dir, langs[0] + "-" langs[1] + codes_suffix) )
+        joint_codes = os.path.abspath( os.path.join(write_dir, langs[0] + "-" + langs[1] + codes_suffix) )
         learn_joint_codes(source_clean, dest_clean, joint_codes, num_sequences, verbose)
     else:
         source_codes = os.path.abspath( os.path.join(write_dir, langs[0] + codes_suffix) )
@@ -161,7 +164,7 @@ def main(train, langs, joint=False, num_sequences=num_sequences_DEFAULT, suffix=
         for dest in extra_dest:
             cleaned = os.path.abspath( os.path.join(write_dir, os.path.basename(dest.name) + suffix) )
             tok_and_tc(dest.name, cleaned, langs[1], dest_tc_model)
-            if verbose: print("Wrote cleaned dest corpus %s" % dest)
+            if verbose: print("Wrote cleaned dest corpus %s" % cleaned)
     
 if __name__ == "__main__":
     parser = create_parser()
