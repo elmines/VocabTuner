@@ -13,5 +13,6 @@ ln -s $DATA_DIR/train.$DST $DATA_DIR/${DST}.orig
 ln -s $DATA_DIR/test.$SRC $DATA_DIR/${SRC}.test
 ln -s $DATA_DIR/test.$DST $DATA_DIR/${DST}.test
 
+module load python/3.6.4
 ./part.sh $SRC $DST $EXP_ROOT
 ./preproc.sh $SRC $DST $EXP_ROOT
