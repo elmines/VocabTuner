@@ -1,12 +1,13 @@
 #!/bin/bash
 #set -x
 
-SRC=$1
-DST=$2
+ROOT=$1
+SRC=$2
+DST=$3
 
 OLD_DIR=`pwd`
 
-EXP=experiments/$SRC-$DST
+EXP=$ROOT/$SRC-$DST
 mkdir -p $EXP
 
 for directory in data models trans vocab logs
