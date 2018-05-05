@@ -2,6 +2,7 @@ import xml.etree.ElementTree as ET
 import xml.dom.minidom
 import argparse
 import random
+import sys
 
 def str2ratio(argument):
     vals = argument.split(":")
@@ -19,7 +20,7 @@ def create_parser():
     parser.add_argument("--input", "-i", required=True, nargs=2, metavar=("<src_path>", "<ref_path>"), type = argparse.FileType("r"))
     parser.add_argument("--trglang", "-l", default="en", metavar=("xx"), type=str)
 
-    parser.add_argument("--train", nargs=2, required=True, metavar=("<src_path>", "<ref_path>"), type = argparse.FileType("w"), help="Output: training sets in plain text")
+    parser.add_argument("--train", nargs=2, required=False, metavar=("<src_path>", "<ref_path>"), type = argparse.FileType("w"), help="Output: training sets in plain text")
 
     parser.add_argument("--dev", nargs=2, metavar=("<src_path>", "<ref_path>"), type = argparse.FileType("w"), help="Output: dev sets in SGML")
     parser.add_argument("--dev_plain", nargs=2, metavar=("<src_path>", "<ref_path>"), type = argparse.FileType("w"), help = "Output: dev sets in plain text")
@@ -29,7 +30,11 @@ def create_parser():
     parser.add_argument("--test_plain", nargs=2, metavar=("<src_path>", "<ref_path>"), type = argparse.FileType("w"), help ="Output: test sets in plain text")
     parser.add_argument("--test_id", default="", help="setid XML attribute for test sets")
 
-    parser.add_argument("--ratio", "-r", default = (1.0, 0.0, 0.0), metavar="train:dev:test", type = str2ratio, help = "Ratio of sizes of training, development, and test sets")
+
+    parser.add_argument("--test-sequences", default=0, metavar="n", type=int, help="Set aside n sequences for testing")
+    parser.add_argument("--dev-sequences", default=0, metavar="n", type=int, help="Set aside n sequenes for dev")
+    parser.add_argument("--ratio", "-r", default = None, metavar="train:dev:test", type = str2ratio, help = "Ratio of sizes of training, development, and test sets (overrides --dev-sequences and --test-sequences")
+
     parser.add_argument("--max-sequences", "--max", metavar="n", type=int, help="Maximum number of sequences to use for training, development, and test sets")
 
     parser.add_argument("--seed", "-s", default=1, metavar="n", type=int, help="Random number seed for shuffling text corpora")
@@ -77,7 +82,7 @@ def write_plain(path, lines):
         out.write("\n".join(lines))
 
 def verbose_message(verbose, path):
-    if verbose: print("Wrote %s" % path)
+    if verbose: sys.stderr.write("Wrote %s\n" % path)
 
 if __name__ == "__main__":
     parser = create_parser()
@@ -99,16 +104,53 @@ if __name__ == "__main__":
         if args.max_sequences and args.max_sequences < len(ref_lines):
             ref_lines = ref_lines[:args.max_sequences]
 
-    train_end = int( len(src_lines) * args.ratio[0])
-    train_src = src_lines[0:train_end]
-    train_ref = ref_lines[0:train_end]
 
-    dev_end = train_end + int(len(src_lines) * args.ratio[1])
-    dev_src = src_lines[train_end:dev_end]
-    dev_ref = ref_lines[train_end:dev_end]
+    if not(args.dev_sequences or args.test_sequences):
+        ratio = args.ratio if args.ratio else (1.0, 0.0, 0.0)
+        train_start = 0
+        train_end = train_start + int( len(src_lines) * args.ratio[0])
 
-    test_src = src_lines[dev_end: ]
-    test_ref = ref_lines[dev_end: ]
+        dev_start = train_end
+        dev_end = dev_start + int(len(src_lines) * args.ratio[1])
+
+        test_start = dev_end
+        test_end = test_start + int(len(src_lines) * args.ratio[2])
+    elif args.dev_sequences and args.test_sequences:
+        if args.dev_sequences + args.test_sequences > len(src_lines):
+            raise ValueError("Requested more total --dev_sequences and --test_sequences than available in --input")
+        test_start = 0
+        test_end = test_start + args.test_sequences
+
+        dev_start = test_end
+        dev_end = dev_start + args.dev_sequences
+
+        train_start = dev_end
+        train_end = len(src_lines)
+    else:
+        if args.dev_sequences:
+            if args.dev_sequences > len(src_lines):
+                raise ValueError("Requested more total --dev_sequences than available in --input")
+            test_start = test_end = 0
+            dev_start = 0
+            dev_end = dev_start + args.dev_sequences
+            train_start = dev_end
+        else:
+            if args.test_sequences > len(src_lines):
+                raise ValueError("Requested more total --test_sequences than available in --input")
+            dev_start = dev_end = 0
+            test_start = 0
+            test_end = test_start + args.test_sequences
+            train_start = test_end
+        train_end = len(src_lines) 
+
+    train_src = src_lines[train_start:train_end]
+    train_ref = ref_lines[train_start:train_end]
+
+    dev_src = src_lines[dev_start:dev_end]
+    dev_ref = ref_lines[dev_start:dev_end]
+
+    test_src = src_lines[test_start:test_end]
+    test_ref = ref_lines[test_start:test_end]
 
     if args.verbose:
         print("   Number of total training sequences =", len(train_src))
@@ -116,34 +158,46 @@ if __name__ == "__main__":
         print("       Number of total test sequences =", len(test_src))
 
 
-    write_plain(args.train[0].name, train_src)
-    write_plain(args.train[1].name, train_ref)
+    if len(train_src) > 0 and args.train:
+        write_plain(args.train[0].name, train_src)
+        verbose_message(args.verbose, args.train[0].name)
 
-    if args.dev:
-        write_src_xml(args.dev[0].name, dev_src, args.dev_id)
-        verbose_message(args.verbose, args.dev[0].name)
+        write_plain(args.train[1].name, train_ref)
+        verbose_message(args.verbose, args.train[1].name)
+    elif args.train and args.verbose:
+        sys.stderr.write("No training lines to write\n")
 
-        write_ref_xml(args.dev[1].name, dev_ref, args.dev_id, args.trglang)
-        verbose_message(args.verbose, args.dev[1].name)
-    if args.dev_plain:
-        write_plain(args.dev_plain[0].name, dev_src)
-        verbose_message(args.verbose, args.dev_plain[0].name)
+    if len(dev_src) > 0 and (args.dev or args.dev_plain):
+        if args.dev:
+            write_src_xml(args.dev[0].name, dev_src, args.dev_id)
+            verbose_message(args.verbose, args.dev[0].name)
 
-        write_plain(args.dev_plain[1].name, dev_ref)
-        verbose_message(args.verbose, args.dev_plain[1].name)
+            write_ref_xml(args.dev[1].name, dev_ref, args.dev_id, args.trglang)
+            verbose_message(args.verbose, args.dev[1].name)
+        if args.dev_plain:
+            write_plain(args.dev_plain[0].name, dev_src)
+            verbose_message(args.verbose, args.dev_plain[0].name)
 
-    if args.test:
-        write_src_xml(args.test[0].name, test_src, args.test_id)
-        verbose_message(args.verbose, args.test[0].name)
+            write_plain(args.dev_plain[1].name, dev_ref)
+            verbose_message(args.verbose, args.dev_plain[1].name)
+    elif (args.dev or args.dev_plain) and args.verbose:
+        sys.stderr.write("No development lines to write\n") 
 
-        write_ref_xml(args.test[1].name, test_ref, args.test_id, args.trglang)
-        verbose_message(args.verbose, args.test[1].name)
-    if args.test_plain:
-        write_plain(args.test_plain[0].name, test_src)
-        verbose_message(args.verbose, args.test_plain[0].name)
+    if len(test_src) > 0 and (args.test or args.test_plain):
+        if args.test:
+            write_src_xml(args.test[0].name, test_src, args.test_id)
+            verbose_message(args.verbose, args.test[0].name)
 
-        write_plain(args.test_plain[1].name, test_ref)
-        verbose_message(args.verbose, args.test_plain[1].name)
+            write_ref_xml(args.test[1].name, test_ref, args.test_id, args.trglang)
+            verbose_message(args.verbose, args.test[1].name)
+        if args.test_plain:
+            write_plain(args.test_plain[0].name, test_src)
+            verbose_message(args.verbose, args.test_plain[0].name)
+
+            write_plain(args.test_plain[1].name, test_ref)
+            verbose_message(args.verbose, args.test_plain[1].name)
+    elif (args.test or args.test_plain) and args.verbose:
+        sys.stderr.write("No test lines to write\n") 
 
 
 
