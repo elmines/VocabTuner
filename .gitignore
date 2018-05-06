@@ -1,5 +1,9 @@
+#Experiment directories
 experiments/
-bio_exp/
+
+bio_exp/*
+!bio_exp/merge_corp.sh
+
 euro_exp/
 
 #pycache
