@@ -338,7 +338,7 @@ class Experiment:
          else:                     score = Experiment.score_marian(model_path, source_vocab, dest_vocab, bpe_dev_source, bpe_dev_dest)
 
          self.score_table += [ (num_merges, score) ]
-         print("score_table =", self.score_table)
+         if self.verbose: print("score_table =", self.score_table)
 
          return score
    

@@ -45,7 +45,7 @@ then
     rm $EXPERIMENT/models/*
 fi
 
-python experiment.py \
+python -u experiment.py \
                         --codes                $JOINT_CODES                \
                         --max-sequences        $SRC_MERGES   $DST_MERGES   \
                         --vocabulary-threshold 50                          \
