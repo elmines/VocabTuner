@@ -33,8 +33,8 @@ TRAIN_DST=$DATA/${DST_LANG}.train.tok.tc
 
 DEV_SRC_SGML=$DATA/${SRC_LANG}-src.dev.sgml
 DEV_DST_SGML=$DATA/${DST_LANG}-ref.dev.sgml
-DEV_SRC=$DATA/${SRC_LANG}.dev
-DEV_DST=$DATA/${DST_LANG}.dev
+DEV_SRC=$DATA/${SRC_LANG}.dev.tok.tc
+DEV_DST=$DATA/${DST_LANG}.dev.tok.tc
 
 RESULTS=${SRC_LANG}-${DST_LANG}.json
 
